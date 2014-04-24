@@ -11,6 +11,9 @@ module Bot = functor (S : Soul) -> struct
   (* If you use side effects, start/reset your bot for a new game *)
   let initialize () = ()
 
+  (* keep array of opponents' resources *)
+
+
   (* Invalid moves are overridden in game *)
   let handle_request ((_,p,t,n) : state) : move =
     let (c, r) = n in

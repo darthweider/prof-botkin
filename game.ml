@@ -4,7 +4,7 @@ open Util
 open Print
 
 
-type game = board * player list * turn * next (* to edit *)
+type game = state (* to edit *)
 
 let state_of_game g = g (* to edit *)
 let game_of_state s = s (* to edit *)
@@ -13,35 +13,64 @@ let game_of_state s = s (* to edit *)
 let init_game () = game_of_state (gen_initial_state())
 
 
+(* If c can built a road on line *)
+let valid_road c ln =
+	failwith "riverrun, past Eve and Adam's "
+	(* not an existing road: not in board's structure's road list *)
+	(* adjacent to a road or town of this player *)
+let valid_settle c pt =
+	failwith "riverrun, past Eve and Adam's "
+	(* no existing settlement *)
+	(* no adjacent settlement. use adjacent_points *)
+	(* color has a road at pt *)
+let valid_initial ln =
+	failwith "riverrun, past Eve and Adam's "
+	(* not an existing road *)
+	(* no adjacent settlement next to p1. use adjacent_points *)
+
+
 (* make_valid m rq will return m if m is a valid move in response to 
    request rq. If not, make_valid will return a valid move. *)
-let make_valid (m : move) (rq : request) : move =
-	failwith "riverrun, past Eve and Adam's, "
+let make_valid (m : move) (rq : request) (g : game) : move =
+	match rq, m with
+	| InitialRequest, InitialMove(ln) when valid_initial ln -> m
+	| InitialRequest, _ -> (* make_valid some random line (Random.int 53, Random.int 53) *)
+
+	| RobberRequest, RobberMove(rob) -> (* when robber is not already on the hex indicated, and the color indicated is on an ajacent hex to the robber *)
+	| RobberRequest, _ -> (* make_valid some random hex and color *)
+	| DiscardRequest, DiscardMove(cost) -> (* when the requested player has less than eight cards *)
+	| DiscardRequest, DiscardMove(cost) -> (* when the requested player still has more than eight cards. discard the ones they inicated, and discard some more *)
+	| DiscardRequest, _ ->
+	| TradeRequest, TradeResponse(r) -> m
+	| TradeRequest, _ -> (* randomly choose T or F *)
+	| ActionRequest
+		(* if dice not rolled yet -> random_roll *)
 
 (*(* given a color, return the corresponding player *)
 let player (c : color) (pl : player list) : player =
 	failwith "riverrun, past Eve and Adam's, "*)
 
+
+(* color_of p returns the color of player p *)
+let color_of (c,h,t) : color = c
+let inv_of (c, (i,cds), t) : inventory = i
+let cards_of (c, (i,cds), t) : card list = cds
+let trophs_of (c, h, t) : trophies = t
+
 (* update information of color c in pl with f.
-   f takes in a hand and a trophies, and returns a player *)
+   f takes a player and returns a player *)
 let update (c : color) (pl : player list) f : player list =
-	List.map ( fun (c',h',tr') -> 
-		if c = c' then f h' tr' 
-		else (c',h',tr') ) pl
-(*(* update inventory of c in pl with i *)
-let update_inv (c : color) (i : inventory) (pl : player list) : player list =
-	update c pl (fun (i',cs') tr' -> (c, (i,h'), tr'))
-(* update cards of c in pl with cs *)
-let update_cards  (c : color) (cs : cards) (pl : player list) : player list =
-	update c pl (fun (i',cs') tr' -> (c, (i',cs),tr'))
-(* update trophies of c in pl with trs *)
-let update_trophies (c : color) (tr : trophies) (pl : player list) : player list =
-	update c pl (fun (i',cs') tr' -> (c, (i',cs'), tr))*)
+	List.map ( fun p -> 
+		if c = color_of p then f p 
+		else p ) pl
 
 (* give add cards cds to player of color c; returns the updated player list *)
-let add_cards cds c pl : player list =
-	update c pl (fun (i',cds') tr' -> 
-		added = List.map ( fun cd -> append_card cds' cd ) (reveal cds)
+let add_cards new_cds c pl : player list =
+	update c pl (fun p -> 
+		let added = List.fold_left (fun acc_cards new_cd -> append_card acc_cards new_cd) 
+			(cards_of p) (reveal new_cds) in
+		(c, (inv_of p, added ), trophs_of p))
+
 
 
 let handle_move g m =

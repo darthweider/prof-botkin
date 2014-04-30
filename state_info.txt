@@ -1,0 +1,28 @@
+state information:
+remember to update all necessary information when handling a move.
+
+
+board
+	map
+		hex list
+		port list
+	structures
+		intersection list
+		road list
+	deck
+	discard
+	robber
+player list
+	inv
+	cards
+	trophies
+turn
+	active
+	dicerolled
+	cardplayed
+	cardsbought
+	tradesmade
+	pendingtrade
+next
+	color
+	request

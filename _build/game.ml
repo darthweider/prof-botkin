@@ -2,7 +2,9 @@ open Definition
 open Constant
 open Util
 open Print
-
+open Player (* functions for accessing / updating a player's assets *)
+open Resources (* functions for handling, adding, and discarding resources and costs *)
+open Structures (* functions for roads and setlements: building and initializing *)
 
 type game = state (* to edit *)
 
@@ -13,68 +15,6 @@ let game_of_state s = s (* to edit *)
 let init_game () = game_of_state (gen_initial_state())
 
 
-(* Return information given a player p *)
-let color_of (c,h,t) : color = c
-let inv_of (c, (i,cds), t) : inventory = i
-let cards_of (c, (i,cds), t) : cards = cds
-let trophs_of (c, h, t) : trophies = t
-
-(* player c pl return the player corresponding to color c in pl *)
-let player (c : color) (pl : player list) : player =
-	List.find (fun p -> color_of p = c) pl
-
-
-(* update information of color c in pl with f.
-   f takes a player and returns a player *)
-let update (c : color) (pl : player list) f : player list =
-	List.map ( fun p -> 
-		if c = color_of p then f p 
-		else p ) pl
-
-(* give add cards cds to player of color c; returns the updated player list *)
-let add_cards new_cds c pl : player list =
-	update c pl (fun p -> 
-		let added = List.fold_left (fun acc_cards new_cd -> append_card acc_cards new_cd) 
-			(cards_of p) (reveal new_cds) in
-		(c, (inv_of p, added ), trophs_of p))
-
-
-(* add_road c l rl adds a road on line l for color c to the road list rl.
-   Fails if a road already exists on l *)
-let add_road c ln rl : road list =
-	if List.exists (fun (_,(pt1, pt2)) -> (pt1,pt2) = ln || (pt2,pt1) = ln ) rl
-	then failwith "A road already exists on this line."
-	else (c, ln)::rl
-
-(* add a town for color c at point pt on intersection list il.
-   Raises an exception if there is a previous settlement at that point or
-   if the surrounding area is not clear of settlements *)
-let add_town c pt il : intersection list =
-	let empty_land = pt :: (adjacent_points pt) in
-	let _, il' = List.fold_left (fun (ct,l') i ->
-		match i with
-		| Some(s) when List.mem ct empty_land ->
-		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when ct = pt -> ( ct+1, Some (c,Town) :: l' )
-		| _                 -> ( ct+1, i::l' ))
-		(0,[]) il in
-	il'
-
-
-let initial c (pt1,pt2) b : board =
-	let m, (il, rl), dk, dis, rob = b in
-	let structures' = try ( (add_town c (pt1) il), (add_road c (pt1, pt2) rl) ) 
-		              with _ -> failwith "Failed to place initial road and settlement." in
-	(m, structures', dk, dis, rob)
-
-let valid_initial c ln b : bool =
-	try (fun x -> true) (initial c ln b)
-	with _ -> false
-
-let rec random_initialmove c b : move =
-	let random_ln = (Random.int 53, Random.int 53) in
-	if valid_initial c random_ln b then InitialMove(random_ln)
-	else random_initialmove c b
 
 
 (* list of colors next to a given piece, according to intersection list il *)
@@ -85,7 +25,6 @@ let colors_near (pc : piece) (il : intersection list) : color list =
 		| Some(c,settle) -> c::clist
 		| None -> clist )
 		[] adj
-
 
 (* placing the robber on piece pc is a valid move on board b *)
 (* robber is not currently at the piece indicated.
@@ -108,61 +47,6 @@ let rec random_rob b : move =
 	else     RobberMove(ran_pc, pick_random (colors_near ran_pc il))
 
 
-(* if the number of resources in dis is the floor of half the resources that color c owns *)
-let valid_discard c dis pl : bool =
-	sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
-
-(* subtraction of cost2 from cost1. Returns error if any resources are negative *)
-let diff_cost cost1 cost2 : cost =
-	map_cost2 (fun a b -> a-b) cost1 cost2
-
-let add_cost cost1 cost2 : cost =
-	map_cost2 (fun a b -> a+b) cost1 cost2	
-
-(* c can pay fee *)
-let can_pay (p : player ) (fee : cost) =
-	try (fun x -> true) (diff_cost (inv_of p) fee)
-	with _ -> false
-
-let random_resource () : resource =
-	match Random.int 4 with
-	| 0 -> Brick
-	| 1 -> Wool
-	| 2 -> Ore
-	| 3 -> Grain
-	| 4 -> Lumber
-	| _ -> failwith "invalid random number"
-
-(* returns a random cost of n resources to discard from inventory inv *)
-let random_discard inv : move =
-	(* d is the cost to discard *)
-	let rec help_discard n inv d : cost =
-		if n = 0 then d
-		else
-			let ran_rsc = random_resource () in
-			(* if player has this random resource, add it to the discard list *)
-			if num_resource_in_inventory inv ran_rsc > 0 then  
-				let c = single_resource_cost ran_rsc in
-				help_discard (n-1) (diff_cost inv c) (add_cost d c)
-			else help_discard n inv d in
-	DiscardMove(help_discard ((sum_cost inv) / 2) inv (0,0,0,0,0))
-
-
-
-
-(* If c can built a road on line *)
-let valid_build_road c ln =
-	failwith "riverrun, past Eve and Adam's "
-	(* not an existing road: not in board's structure's road list *)
-	(* adjacent to a road or town of this player *)
-let valid_build_town c pt =
-	failwith "riverrun, past Eve and Adam's "
-	(* no existing settlement *)
-	(* no adjacent settlement. use adjacent_points *)
-	(* color has a road at pt *)
-let valid_build_city c pt =
-	failwith "riverrun, past Eve and Adam's "
-	(* c already has a town at pt *)
 
 
 
@@ -268,6 +152,18 @@ let handle_move g m =
 	(winner, g')
 
 
-let presentation g = g (* to edit *)
-(* hide cards of all other players with util.hide *)
-(* hide cardsbought by active player *)
+let presentation g : game =
+	let b, pl, t, (cm,rq) = g in
+	let m, s, dk, dis, rob = b in
+
+	(* hide deck if necessary *)
+	let dk' = hide dk in
+	(* hide cards of all other players *)
+	let pl' = List.map ( fun p -> if color_of p = cm then p 
+		                          else let (c, (i, cds), tr) = p in (c, (i, hide cds), tr))  pl in
+	(* hide cardsbought by active player *)
+	let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
+	           cardsbought = hide t.cardsbought ; tradesmade = t.tradesmade ; 
+	           pendingtrade = t.pendingtrade } in
+
+	((m, s, dk', dis, rob), pl', t', (cm, rq))

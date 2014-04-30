@@ -86,7 +86,6 @@ let colors_near (pc : piece) (il : intersection list) : color list =
 		| None -> clist )
 		[] adj
 
-
 (* placing the robber on piece pc is a valid move on board b *)
 (* robber is not currently at the piece indicated.
    If a color is indicated, it must have a settlement on an adjacent pt.

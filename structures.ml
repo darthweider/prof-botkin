@@ -7,7 +7,7 @@ open Player
 
 
 let indexed (l : 'a list) : (int * 'a) list =
-	let _, indexed = List.fold_right ( fun x (ct,lacc) -> ct+1, (ct, x)::lacc ) l (0, []) in
+	let _, indexed = List.fold_left ( fun (ct,lacc) x -> ct+1, lacc @ [(ct, x)] ) (0, []) l in
 	indexed
 
 
@@ -27,13 +27,13 @@ let add_town c pt il : intersection list =
 	let empty_land = pt :: (adjacent_points pt) in
 	let indexed_intersections = indexed il in
 
-	List.fold_right (fun (loc, i) ilacc ->
+	List.fold_left (fun ilacc (loc, i) ->
 		match i with
 		| Some(s) when List.mem loc empty_land ->
 		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when loc = pt ->  Some (c,Town) :: ilacc
-		| _                  ->  i::ilacc )
-		indexed_intersections []
+		| None when loc = pt ->  ilacc @ [Some (c,Town)]
+		| _                  ->  ilacc @ [i] )
+		[] indexed_intersections
 
 
 let initial c (pt1,pt2) b : board =

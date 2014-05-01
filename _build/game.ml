@@ -29,7 +29,7 @@ let colors_near (pc : piece) (il : intersection list) : color list =
 (* placing the robber on piece pc is a valid move on board b *)
 (* robber is not currently at the piece indicated.
    If a color is indicated, it must have a settlement on an adjacent pt.
-   If a color is not indicated, ) *)
+   If a color is not indicated, there must be no colors adjacent to pc. *)
 let valid_rob (pc,copt) b =
 	let m, (il, rl), dk, dis, rob = b in
 	if pc = rob then false
@@ -106,8 +106,9 @@ let handle_move g m =
 					cm, (cm, ActionRequest ) in
 			(b', pl, new_turn active', n')
 		end
-		| RobberMove (rm) -> failwith "I am the shadow of the waxwing slain"
-			(* change board.robber *)
+		| RobberMove (pc, copt) -> failwith "I am the shadow of the waxwing slain"
+			(* let b' = (hexl, portl), (il, rl), dk, dis, pc in *)
+
 			(* steal resource *)
 		| DiscardMove (ns)-> failwith "I am the shadow of the waxwing slain"
 			(* use map_cost2 to subtract cost ns from player's resources *)
@@ -137,7 +138,7 @@ let handle_move g m =
 						let t, n = hex in
 						if (pc != rob && n = roll && t != Desert) 
 						then (print (sprintf "distributing to towns by hex %i" pc) ;
-						 distribute (get_some (resource_of_terrain t)) (adjacent_points pc) il placc)
+						 distribute (get_some (resource_of_terrain t)) (piece_corners pc) il placc)
 						else placc )
 						pl (indexed hexl) in
 

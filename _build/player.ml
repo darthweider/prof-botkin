@@ -21,7 +21,10 @@ let player (c : color) (pl : player list) : player =
 
 (* subtraction of cost2 from cost1. Returns error if any resources are negative *)
 let diff_cost cost1 cost2 : cost =
-	map_cost2 (fun a b -> a-b) cost1 cost2
+	map_cost2 (fun a b -> 
+		let diff = a-b in
+		if diff > 0 then diff
+		else failwith "cannot have a negative cost") cost1 cost2
 
 let add_cost cost1 cost2 : cost =
 	map_cost2 (fun a b -> a+b) cost1 cost2	
@@ -100,9 +103,9 @@ let random_discard inv : move =
 
 let distribute resource pt il pl : player list =
 		match List.nth il pt with
-		| None -> pl
+		| None -> ( print (sprintf "no town to distribute to at pt %i" pt) ; pl )
 		| Some(c,s) -> 
-			print (sprintf "distributing to %i" pt);
+			print (sprintf "distributing to pt %i" pt);
 			add_inv (n_resource_cost resource (settlement_num_resources s)) c pl
 
 

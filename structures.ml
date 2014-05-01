@@ -27,13 +27,13 @@ let add_town c pt il : intersection list =
 	let empty_land = pt :: (adjacent_points pt) in
 	let indexed_intersections = indexed il in
 
-	List.fold_left (fun ilacc (loc, i) ->
+	List.fold_right (fun (loc, i) ilacc ->
 		match i with
 		| Some(s) when List.mem loc empty_land ->
 		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when loc = pt ->  Some (c,Town) :: ilacc)
+		| None when loc = pt ->  Some (c,Town) :: ilacc
 		| _                  ->  i::ilacc )
-		[] indexed_intersections
+		indexed_intersections []
 
 
 let initial c (pt1,pt2) b : board =

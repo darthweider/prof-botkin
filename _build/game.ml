@@ -131,20 +131,15 @@ let handle_move g m =
 
 			(* distribute resources *)
 			else 
-				let distribute resource pts il pl =
-					List.fold_left ( fun placc pt -> 
-						match List.nth il pt with
-						| None -> placc 
-						| Some(c,s) -> add_inv (n_resource_cost resource (settlement_num_resources s)) c pl )
-						pl pts in
 
 				let pl' = 
-					List.fold_left (fun (pc, hex) ->
+					List.fold_left (fun placc (pc, hex) ->
 						let t, n = hex in
-						if (n = roll && t != Desert) 
-						then distribute (get_some (resource_of_terrain t)) (adjacent_points pc) il pl
-						else pl )
-						(indexed_hexs hl) (0, pl) in
+						if (pc != rob && n = roll && t != Desert) 
+						then (print (sprintf "distributing to towns by hex %i" pc) ;
+						 distribute (get_some (resource_of_terrain t)) (adjacent_points pc) il placc)
+						else placc )
+						pl (indexed hexl) in
 
 				let n' = (cm, ActionRequest) in
 				(b, pl', t', n')
@@ -178,7 +173,8 @@ let handle_move g m =
 	let winner : color option =
 		(* if various win conditions -> some color , else *)
 		None in
-	print_update cm mv (state_of_game g');(winner, g')
+	print_update cm mv (state_of_game g');
+	(winner, g')
 
 
 let presentation g : game =

@@ -2,6 +2,7 @@ open Definition
 open Constant
 open Util
 open Print
+open Printf
 
 (*======================INFORMATION RETRIEVAL=================================*)
 
@@ -94,6 +95,20 @@ let random_discard inv : move =
 			else help_discard n inv d in
 	DiscardMove(help_discard ((sum_cost inv) / 2) inv (0,0,0,0,0))
 
+
+
+
+let distribute resource pt il pl : player list =
+		match List.nth il pt with
+		| None -> pl
+		| Some(c,s) -> 
+			print (sprintf "distributing to %i" pt);
+			add_inv (n_resource_cost resource (settlement_num_resources s)) c pl
+
+
+let distribute resource pts il pl : player list =
+	List.fold_left ( fun placc pt -> 
+		distribute resource pt il placc ) pl pts 
 
 
 

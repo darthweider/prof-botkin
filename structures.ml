@@ -4,6 +4,15 @@ open Util
 open Print
 open Player
 
+
+let indexed_intersections il : (int * intersection) list =
+	let _, indexed = List.fold_right ( fun i (ct,iacc) -> ct+1, (ct, i)::iacc ) il (0, []) in
+	indexed
+
+let indexed_hexs hl : (int * hex) list =
+	let _, indexed = List.fold_right ( fun h (ct,hacc) -> ct+1, (ct+1, h)::hacc ) hl (0, []) in
+	indexed
+
 (* add_road c l rl adds a road on line l for color c to the road list rl.
    Fails if a road already exists on l *)
 let add_road c ln rl : road list =

@@ -16,14 +16,24 @@ let add_road c ln rl : road list =
    if the surrounding area is not clear of settlements *)
 let add_town c pt il : intersection list =
 	let empty_land = pt :: (adjacent_points pt) in
-	let _, il' = List.fold_left (fun (ct,ilacc) i ->
+	let _, il' = List.fold_right (fun i (ct,ilacc) ->
 		match i with
 		| Some(s) when List.mem ct empty_land ->
 		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when ct = pt -> ( ct-1, Some (c,Town) :: ilacc )
-		| _                 -> ( ct-1, i::ilacc ))
-		(List.length(il)-1,[]) il in
+		| None when ct = pt -> ( ct+1, Some (c,Town) :: ilacc )
+		| _                 -> ( ct+1, i::ilacc ))
+		il (0,[]) in
 	il'
+
+
+let num_towns_of c il : int =
+	list_count ( fun i -> 
+		match i with 
+		| Some(color,s) when color = c -> true 
+		| _ -> false ) il
+
+let num_towns_total pl il : int =
+	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
 
 let initial c (pt1,pt2) b : board =
@@ -47,11 +57,14 @@ let valid_build_road c ln =
 	failwith "riverrun, past Eve and Adam's "
 	(* not an existing road: not in board's structure's road list *)
 	(* adjacent to a road or town of this player *)
+	(* have not exceeded max roads per player *)
 let valid_build_town c pt =
 	failwith "riverrun, past Eve and Adam's "
 	(* no existing settlement *)
 	(* no adjacent settlement. use adjacent_points *)
 	(* color has a road at pt *)
+	(* have not exceeded max towns per player *)
 let valid_build_city c pt =
 	failwith "riverrun, past Eve and Adam's "
 	(* c already has a town at pt *)
+	(* have not exceeded max cities per player *)

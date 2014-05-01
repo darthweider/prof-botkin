@@ -42,3 +42,14 @@ let random_discard inv : move =
 				help_discard (n-1) (diff_cost inv c) (add_cost d c)
 			else help_discard n inv d in
 	DiscardMove(help_discard ((sum_cost inv) / 2) inv (0,0,0,0,0))
+
+(* n_of r n returns a cost for n of resource r *)
+let n_resource_cost n resource : cost =
+  match resource with
+    | Brick ->  (n,0,0,0,0)
+    | Wool ->   (0,n,0,0,0)
+    | Ore ->    (0,0,n,0,0)
+    | Grain ->  (0,0,0,n,0)
+    | Lumber -> (0,0,0,0,n)
+
+let empty_cost = (0,0,0,0,0)

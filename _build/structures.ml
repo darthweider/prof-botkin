@@ -3,7 +3,6 @@ open Constant
 open Util
 open Print
 open Player
-open Resources
 
 (* add_road c l rl adds a road on line l for color c to the road list rl.
    Fails if a road already exists on l *)
@@ -17,13 +16,13 @@ let add_road c ln rl : road list =
    if the surrounding area is not clear of settlements *)
 let add_town c pt il : intersection list =
 	let empty_land = pt :: (adjacent_points pt) in
-	let _, il' = List.fold_left (fun (ct,l') i ->
+	let _, il' = List.fold_left (fun (ct,ilacc) i ->
 		match i with
 		| Some(s) when List.mem ct empty_land ->
 		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when ct = pt -> ( ct+1, Some (c,Town) :: l' )
-		| _                 -> ( ct+1, i::l' ))
-		(0,[]) il in
+		| None when ct = pt -> ( ct-1, Some (c,Town) :: ilacc )
+		| _                 -> ( ct-1, i::ilacc ))
+		(List.length(il)-1,[]) il in
 	il'
 
 

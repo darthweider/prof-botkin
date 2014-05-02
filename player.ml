@@ -55,6 +55,20 @@ let random_resource () : resource =
 	| 4 -> Lumber
 	| _ -> failwith "invalid random number"
 
+(* from an inventory inv, choose n random resources and return the cost of all those resources *)
+let n_random_resources inv n : cost =
+	let rec helper inv n chosen : cost =
+		if n = 0 then chosen
+		else
+			let ran_rsc = random_resource () in
+			(* if player has this random resource, add it to the chosen list *)
+			if num_resource_in_inventory inv ran_rsc > 0 then  
+				let c = single_resource_cost ran_rsc in
+				helper (diff_cost inv c) (n-1) (add_cost chosen c)
+			else helper inv n chosen in
+	helper inv n (0,0,0,0,0)
+
+
 (*=======================UPDATE PLAYER INFORMATION=====================*)
 
 
@@ -73,30 +87,26 @@ let add_cards new_cds c pl : player list =
 		(c, (inv_of p, added ), trophs_of p))
 
 (* add cost income to the inventory of color c; returns updated player list *)
-let add_inv income c pl : player list =
+let add_to_inv income c pl : player list =
 	update c pl (fun p ->
 		let inv' = add_cost (inv_of p) income in
 		(c, (inv', cards_of p), trophs_of p))
 
+let rm_from_inv expense c pl : player list =
+	update c pl (fun p ->
+		let inv' = diff_cost (inv_of p) expense in
+		(c, (inv', cards_of p), trophs_of p))
 
 
 (* if the number of resources in dis is the floor of half the resources that color c owns *)
 let valid_discard c dis pl : bool =
 	sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
 
-(* returns a random cost of n resources to discard from inventory inv *)
+
+(* returns a random discard move that will discard random resources 
+   so that the resulting inv would be the floor of half the current inventory *)
 let random_discard inv : move =
-	(* d is the cost to discard *)
-	let rec help_discard n inv d : cost =
-		if n = 0 then d
-		else
-			let ran_rsc = random_resource () in
-			(* if player has this random resource, add it to the discard list *)
-			if num_resource_in_inventory inv ran_rsc > 0 then  
-				let c = single_resource_cost ran_rsc in
-				help_discard (n-1) (diff_cost inv c) (add_cost d c)
-			else help_discard n inv d in
-	DiscardMove(help_discard ((sum_cost inv) / 2) inv (0,0,0,0,0))
+	DiscardMove(n_random_resources inv ((sum_cost inv) / 2) )
 
 
 
@@ -106,7 +116,7 @@ let distribute resource pt il pl : player list =
 		match List.nth il pt with
 		| Some(c,s) -> 
 			print ("distributing " ^ (string_of_resource resource) ^ (sprintf " to pt %i" pt)) ;
-			add_inv (n_resource_cost resource (settlement_num_resources s)) c pl
+			add_to_inv (n_resource_cost resource (settlement_num_resources s)) c pl
 		| _ -> pl
 
 (* distribute resource to all points in list pts, based on intersection list il.

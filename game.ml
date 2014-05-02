@@ -108,10 +108,23 @@ let handle_move g m =
 					cm, (cm, ActionRequest ) in
 			(b', pl', new_turn active', n')
 		end
-		| RobberMove (pc, copt) -> failwith "I am the shadow of the waxwing slain"
-			(* let b' = (hexl, portl), (il, rl), dk, dis, pc in *)
+		| RobberMove (pc, copt) -> begin
+			let b' = (hexl, portl), (il, rl), dk, dis, pc in
 
-			(* steal resource *)
+			let pl'' =
+				match copt with
+				| None -> pl
+				| Some(c) -> begin
+					(* the cost of one random resource that c has *)
+					let stolen = n_random_resources (inv_of (player c pl)) 1 in
+					let pl' = rm_from_inv stolen c pl in
+					add_to_inv stolen cm pl' 
+				end in
+			
+			let n' = cm, ActionRequest in
+
+			(b', pl'', t, n')
+		end
 		| DiscardMove (ns)-> failwith "I am the shadow of the waxwing slain"
 			(* use map_cost2 to subtract cost ns from player's resources *)
 			(* when the requested player still has more than seven cards. discard the ones they inicated, and discard some more *)
@@ -131,6 +144,8 @@ let handle_move g m =
 			          pendingtrade = t.pendingtrade } in
 
 			if roll = cROBBER_ROLL then (b, pl, t', (cm, RobberRequest))
+			(* ==================TO EDIT: DISCARD IF OVER 7 CARDS==================*)
+
 
 			(* distribute resources *)
 			else let pl' = 

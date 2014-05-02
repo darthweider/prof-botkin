@@ -91,20 +91,22 @@ let handle_move g m =
 	(* g' is the game after the move has been played *)
 	let g' : game = 
 		match mv with
-		| InitialMove(ln) -> begin
-			let b' = initial cm ln b in
+		| InitialMove(pt1,pt2) -> begin
+			let b' = initial cm (pt1,pt2) b in
 			let pnum = List.length(pl) in (* number of players *)
 			let townnum = num_towns_total pl il in (* number of initilaized towns *)
-			let active', n' = 
+			let pl', active', n' = 
 				if townnum < pnum-1 then (* first stage of initialization *)
-					next_turn cm, (next_turn cm, InitialRequest)
+					pl, next_turn cm, (next_turn cm, InitialRequest)
 				else if townnum = pnum-1 then (* go again *)
-					cm, (cm, InitialRequest)
+					pl, cm, (cm, InitialRequest)
 				else if townnum < 2*pnum-1 then (* second stage *)
+					(distribute_initial pt1 b' pl), 
 					prev_turn cm, (prev_turn cm, InitialRequest) 
-				else 
+				else (* last initialization *) 
+					(distribute_initial pt1 b' pl), 
 					cm, (cm, ActionRequest ) in
-			(b', pl, new_turn active', n')
+			(b', pl', new_turn active', n')
 		end
 		| RobberMove (pc, copt) -> failwith "I am the shadow of the waxwing slain"
 			(* let b' = (hexl, portl), (il, rl), dk, dis, pc in *)
@@ -131,14 +133,11 @@ let handle_move g m =
 			if roll = cROBBER_ROLL then (b, pl, t', (cm, RobberRequest))
 
 			(* distribute resources *)
-			else 
-
-				let pl' = 
+			else let pl' = 
 					List.fold_left (fun placc (pc, hex) ->
 						let t, n = hex in
 						if (pc != rob && n = roll && t != Desert) 
-						then (print (sprintf "distributing to towns by hex %i" pc) ;
-						 distribute (get_some (resource_of_terrain t)) (piece_corners pc) il placc)
+						then distribute_to_pts (piece_corners pc) (get_some (resource_of_terrain t)) il placc
 						else placc )
 						pl (indexed hexl) in
 

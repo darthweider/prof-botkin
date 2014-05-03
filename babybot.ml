@@ -24,12 +24,10 @@ module Bot = functor (S : Soul) -> struct
       | TradeRequest -> TradeResponse(true)
       | ActionRequest -> if is_none t.dicerolled then begin
         tradeonce:=true;
-        print_string "Rolled";
         Action(RollDice)
         end
         else 
           if !tradeonce then begin
-            print_string "Trade";
             (tradeonce:=false); Action(DomesticTrade((next_turn c), (1,0,0,0,0), (0,1,0,0,0)))
           end
           else Action(EndTurn) 

@@ -54,6 +54,7 @@ let rec random_rob b : move =
    If not, make_valid will return a valid move. *)
 let rec make_valid (m : move) (g : game) : move =
 	let b, pl, t, (cm, rq) = g in
+	let (hlist, plist), (il, rl), dk, dis, rob = b in
 
 	match rq, m with
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
@@ -66,7 +67,7 @@ let rec make_valid (m : move) (g : game) : move =
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
 	| ActionRequest, Action(PlayCard(pc)) when not t.cardplayed     ->  m
 	| ActionRequest, _ when is_none t.dicerolled                    ->  Action(RollDice)
-	| ActionRequest, Action(MaritimeTrade(mt)) -> m
+	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1 -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
@@ -177,7 +178,19 @@ let handle_move g m =
 				(b, pl', t', n')
 
 
-		| Action (MaritimeTrade(sell, buy)) -> failwith "I am the shadow of the waxwing slain"
+		| Action (MaritimeTrade(sell, buy)) ->begin
+			let ports = get_ports cm il portl in
+			let rate = best_trade_rate ports sell in
+			let cost = n_resource_cost sell rate in
+			let reward = n_resource_cost buy 1 in
+			(*Remove minimum amount of resources possible*)
+			let pl' = rm_from_inv cost cm pl in
+			(*Receive one resource back*)
+			let pl' = add_to_inv reward cm pl' in
+			(*Trade is done*)
+			let n' = (cm, ActionRequest) in
+			(b, pl', t, n')
+		end
 
 		| Action (DomesticTrade(c, outns, inns)) -> begin
 			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;

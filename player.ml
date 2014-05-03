@@ -35,8 +35,10 @@ let add_cost cost1 cost2 : cost =
 
 (* c can pay fee *)
 let can_pay (p : player ) (fee : cost) =
-	try (fun x -> true) (diff_cost (inv_of p) fee)
-	with _ -> false
+	let inv' = diff_cost (inv_of p) fee in
+	let check_for_negatives ((b,w,o,l,g) : cost) : bool =
+		b>=0 && w>=0 && o>=0 && l>=0 && g>=0 in
+	check_for_negatives inv'
 
 
 (* n_of r n returns a cost for n of resource r *)

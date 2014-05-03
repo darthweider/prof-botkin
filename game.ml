@@ -133,16 +133,33 @@ let handle_move g m =
 			else (b, pl', t, ((next_turn cm), DiscardRequest))
 
 		end
-			(* use map_cost2 to subtract cost ns from player's resources *)
-			(* when the requested player still has more than seven cards. discard the ones they inicated, and discard some more *)
-		| TradeResponse (agree) ->
+
+		| TradeResponse (agree) -> begin
 			let t' = { active = t.active ; dicerolled = t.dicerolled ;
 			           cardplayed = t.cardplayed ; cardsbought = t.cardsbought ;
 			           tradesmade = t.tradesmade ; pendingtrade = None } in
 			let n' = t.active, ActionRequest in
-			if not agree then (b,pl,t',n')
-			else (* make trade *) failwith "I am the shadow of the waxwing slain"	
-			(* did NOT change trade counter *)
+			match t.pendingtrade with
+			| Some(c, outns, inns) -> begin				
+				if not agree then (b,pl,t',n')
+				else begin
+					let t' = { active = t.active ; dicerolled = t.dicerolled ;
+				    	       cardplayed = t.cardplayed ; cardsbought = t.cardsbought ;
+				        	   tradesmade = t.tradesmade+1 ; pendingtrade = None } in
+				    (*Remove proposing player's resources*)
+				    let pl' = rm_from_inv outns t.active pl in
+				    (*Remove receiving player's resources*)
+				    let pl' = rm_from_inv inns c pl' in
+				    (*Give proposing player their resources*)
+				    let pl' = add_to_inv inns t.active pl' in
+				    (*Give receiving player their resources*)
+				    let pl' = add_to_inv outns c pl' in	
+				    (*Trade is done*)
+				    (b, pl', t', n')
+				end
+			end
+			| _ -> (b,pl,t',n')
+		end
 		| Action (RollDice) ->
 			let roll = random_roll () in
 
@@ -169,8 +186,18 @@ let handle_move g m =
 
 		| Action (MaritimeTrade(sell, buy)) -> failwith "I am the shadow of the waxwing slain"
 
-		| Action (DomesticTrade(c, outns, inns)) -> failwith "Lolita"
+		| Action (DomesticTrade(c, outns, inns)) -> begin
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = Some(c, outns, inns) } in
+			(*Verify that the trade is legal--enough recourses must exist*)
+			if (can_pay (player cm pl) outns) && (can_pay (player c pl) inns) then (b, pl, t', (c, TradeRequest))
+			else (b, pl, t, (cm, ActionRequest))
+		end
 			(* increment trade counter *)
+
+
+
 		| Action (BuyBuild(BuildRoad(c,lin))) -> failwith "light of my life, "
 		| Action (BuyBuild(BuildTown(pt))) -> failwith "light of my life, "
 

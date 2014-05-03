@@ -69,7 +69,9 @@ let rec make_valid (m : move) (g : game) : move =
 	| ActionRequest, Action(MaritimeTrade(mt)) -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
-	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) -> m
+	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
+		(* If a player attempts an invalid trade, end their turn. IS THIS RIGHT?*)
+	| ActionRequest, Action(DomesticTrade(_)) 															-> Action(EndTurn)
 		(* when player has resources ot make the trade and trade limit not reached *) 
 	| ActionRequest, Action(BuyBuild(BuildRoad(ln))) when valid_build_road cm ln -> m
 		(* and player can pay cost_of_build *)
@@ -126,12 +128,9 @@ let handle_move g m =
 			(b', pl'', t, n')
 		end
 		| DiscardMove (ns)-> begin
+			(*Discard, then check if any other players must discard. If not, have the inital player move the robber*)
 			let pl' = rm_from_inv ns cm pl in
-			(*If the player discarding is the player who rolled the robber, have them move the robber as their next move*)
-			if cm = t.active then (b, pl', t, (cm, RobberRequest))
-			(*Otherwise continue removing resources*)
-			else (b, pl', t, ((next_turn cm), DiscardRequest))
-
+			next_to_discard cm pl' t b
 		end
 
 		| TradeResponse (agree) -> begin
@@ -143,9 +142,6 @@ let handle_move g m =
 			| Some(c, outns, inns) -> begin				
 				if not agree then (b,pl,t',n')
 				else begin
-					let t' = { active = t.active ; dicerolled = t.dicerolled ;
-				    	       cardplayed = t.cardplayed ; cardsbought = t.cardsbought ;
-				        	   tradesmade = t.tradesmade+1 ; pendingtrade = None } in
 				    (*Remove proposing player's resources*)
 				    let pl' = rm_from_inv outns t.active pl in
 				    (*Remove receiving player's resources*)
@@ -167,11 +163,10 @@ let handle_move g m =
 			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
 			          pendingtrade = t.pendingtrade } in
 
-			if roll = cROBBER_ROLL then (b, pl, t', ((next_turn cm), DiscardRequest))
-			(* ==================TO EDIT: DISCARD IF OVER 7 CARDS==================*)
-
-
-			(* distribute resources *)
+			if roll = cROBBER_ROLL then
+				(*Everyone discard if over 7 resources. Move the robber after discarding*)
+				next_to_discard t.active pl t' b
+			(* Else distribute resources *)
 			else let pl' = 
 					List.fold_left (fun placc (pc, hex) ->
 						let t, n = hex in
@@ -188,13 +183,12 @@ let handle_move g m =
 
 		| Action (DomesticTrade(c, outns, inns)) -> begin
 			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
-			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade+1 ; 
 			          pendingtrade = Some(c, outns, inns) } in
 			(*Verify that the trade is legal--enough recourses must exist*)
-			if (can_pay (player cm pl) outns) && (can_pay (player c pl) inns) then (b, pl, t', (c, TradeRequest))
-			else (b, pl, t, (cm, ActionRequest))
+			(b, pl, t', (c, TradeRequest))
+			
 		end
-			(* increment trade counter *)
 
 
 

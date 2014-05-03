@@ -125,7 +125,14 @@ let handle_move g m =
 
 			(b', pl'', t, n')
 		end
-		| DiscardMove (ns)-> failwith "I am the shadow of the waxwing slain"
+		| DiscardMove (ns)-> begin
+			let pl' = rm_from_inv ns cm pl in
+			(*If the player discarding is the player who rolled the robber, have them move the robber as their next move*)
+			if cm = t.active then (b, pl', t, (cm, RobberRequest))
+			(*Otherwise continue removing resources*)
+			else (b, pl', t, ((next_turn cm), DiscardRequest))
+
+		end
 			(* use map_cost2 to subtract cost ns from player's resources *)
 			(* when the requested player still has more than seven cards. discard the ones they inicated, and discard some more *)
 		| TradeResponse (agree) ->
@@ -143,7 +150,7 @@ let handle_move g m =
 			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
 			          pendingtrade = t.pendingtrade } in
 
-			if roll = cROBBER_ROLL then (b, pl, t', (cm, RobberRequest))
+			if roll = cROBBER_ROLL then (b, pl, t', ((next_turn cm), DiscardRequest))
 			(* ==================TO EDIT: DISCARD IF OVER 7 CARDS==================*)
 
 

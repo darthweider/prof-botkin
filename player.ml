@@ -19,12 +19,16 @@ let player (c : color) (pl : player list) : player =
 
 (*==============================COST/RESOURCE CALCULATIONS====================================*)
 
-(* subtraction of cost2 from cost1. Returns error if any resources are negative *)
+(* subtraction of cost2 from cost1. The return value can be negative *)
 let diff_cost cost1 cost2 : cost =
+map_cost2 (fun a b -> 
+		a-b) cost1 cost2
+
+	(* Note from Matthew: I've commented out your code here. I don't think we want it to return an error.
 	map_cost2 (fun a b -> 
 		let diff = a-b in
 		if diff > 0 then diff
-		else failwith "cannot have a negative cost") cost1 cost2
+		else failwith "cannot have a negative cost") cost1 cost2 *)
 
 let add_cost cost1 cost2 : cost =
 	map_cost2 (fun a b -> a+b) cost1 cost2	
@@ -98,15 +102,16 @@ let rm_from_inv expense c pl : player list =
 		(c, (inv', cards_of p), trophs_of p))
 
 
-(* if the number of resources in dis is the floor of half the resources that color c owns *)
+(* if the number of resources in dis is the floor of half the resources that color c owns AND the number of resources is greater than 7*)
 let valid_discard c dis pl : bool =
-	sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
+	sum_cost dis > 7 && sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
 
 
 (* returns a random discard move that will discard random resources 
    so that the resulting inv would be the floor of half the current inventory *)
 let random_discard inv : move =
-	DiscardMove(n_random_resources inv ((sum_cost inv) / 2) )
+	if sum_cost inv > 7 then DiscardMove(n_random_resources inv ((sum_cost inv) / 2) )
+	else DiscardMove(0,0,0,0,0)
 
 
 

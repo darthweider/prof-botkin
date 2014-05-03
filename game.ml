@@ -70,18 +70,16 @@ let rec make_valid (m : move) (g : game) : move =
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
-		(* If a player attempts an invalid trade, end their turn. IS THIS RIGHT?*)
-	| ActionRequest, Action(DomesticTrade(_)) 															-> Action(EndTurn)
 		(* when player has resources ot make the trade and trade limit not reached *) 
-	| ActionRequest, Action(BuyBuild(BuildRoad(ln))) when valid_build_road cm ln -> m
+	| ActionRequest, Action(BuyBuild(BuildRoad(ln))) when valid_build_road cm ln                        -> m
 		(* and player can pay cost_of_build *)
-	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt -> m
+	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt                       -> m
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt -> m
+	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt                       -> m
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCard)) -> m
+	| ActionRequest, Action (BuyBuild(BuildCard))                                                       -> m
 		(* when player can pay *)
-	| ActionRequest, _ -> Action(EndTurn) 
+	| ActionRequest, _                                                                                  -> Action(EndTurn) 
 
 
 

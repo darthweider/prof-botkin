@@ -35,6 +35,34 @@ let add_town c pt il : intersection list =
 		| _                  ->  ilacc @ [i] )
 		[] indexed_intersections
 
+(* Given a color c and an intersection list il, get_ports returns a list of ports owned by this player
+	The elements of this list are of the form (exchange rate, type of resource) *)
+let get_ports (c : color) (il : intersection list) (port_list : port list) : (int * portresource) list=
+	let rec helper port_list acc = 
+		match port_list with
+			| [] -> acc
+			| ((loc, loc'), rate, res_type) ::tl ->
+			let cons_if_not_none l x =
+				match x with 
+				| None -> l
+				| Some(col, _) -> if c = col then (rate, res_type)::l
+								  else l in
+			let port_one =  List.nth il loc in
+			let port_two =  List.nth il loc' in 
+			let acc = cons_if_not_none acc port_one in
+			let acc = cons_if_not_none acc port_two in
+			helper tl acc in
+	helper port_list []
+
+let best_trade_rate (port_list : (int * portresource) list) (res : resource) : int =
+	let rec helper l best_rate =
+		match l with
+		| [] -> best_rate
+		| (r, Any)::tl -> helper tl (min r best_rate)
+		| (r, PortResource(rs))::tl -> if rs = res then helper tl (min r best_rate)
+									   else helper tl best_rate in
+	helper port_list 4
+
 
 let initial c (pt1,pt2) b : board =
 	let m, (il, rl), dk, dis, rob = b in
@@ -80,4 +108,3 @@ let valid_build_city c pt =
 	(* c already has a town at pt *)
 	(* have not exceeded max cities per player *)
 
-	

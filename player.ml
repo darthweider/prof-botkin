@@ -51,13 +51,12 @@ let n_resource_cost resource n : cost =
 let empty_cost = (0,0,0,0,0)
 
 let random_resource () : resource =
-	match Random.int 4 with
+	match Random.int 5 with
 	| 0 -> Brick
 	| 1 -> Wool
 	| 2 -> Ore
 	| 3 -> Grain
-	| 4 -> Lumber
-	| _ -> failwith "invalid random number"
+	| _ -> Lumber
 
 (* from an inventory inv, choose n random resources and return the cost of all those resources *)
 let n_random_resources inv n : cost =
@@ -69,7 +68,8 @@ let n_random_resources inv n : cost =
 			if num_resource_in_inventory inv ran_rsc > 0 then  
 				let c = single_resource_cost ran_rsc in
 				helper (diff_cost inv c) (n-1) (add_cost chosen c)
-			else helper inv n chosen in
+			else let () = print_int n in
+			helper inv n chosen in
 	helper inv n (0,0,0,0,0)
 
 

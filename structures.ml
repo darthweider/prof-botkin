@@ -40,6 +40,13 @@ let add_town c pt il : intersection list =
 		| _                  ->  ilacc @ [i] )
 		[] indexed_intersections
 
+(*Adds a city at the given index. Assumes that this is a valid move (does not check if it is not)*)
+let add_city c pt il : intersection list = 
+	let indexed_intersections = indexed il in
+	List.fold_left (fun ilacc (loc, i) -> 
+		if loc = pt then ilacc @ [Some(c, City)]
+		else ilacc @ [i]) [] indexed_intersections
+
 (*Given a list of roads and a color, returns the list of roads that could potential (or have already been) placed by a single player*)
 let all_possible_roads (roadl : road list) (c : color) : road list =
 	let rec helper roadl acc = 
@@ -78,6 +85,12 @@ let num_towns_of c il : int =
 		| Some(color,s) when color = c -> true 
 		| _ -> false ) il
 
+let num_cities_of c il : int =
+	list_count (fun i -> 
+		match i with
+		| Some(col, s) when s = City && col = c-> true
+		| _ -> false) il
+
 let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
@@ -114,8 +127,11 @@ let valid_build_town c pt pl roadl il=
 	(*we can afford a town AND we have not exceeded max # of towns AND the target+adjacent squares=empty AND road leads to point*)
 	can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && empty_in_and_around && pathexists
 
-let valid_build_city c pt =
-	failwith "riverrun, past Eve and Adam's "
-	(* c already has a town at pt *)
-	(* have not exceeded max cities per player *)
+let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersection list) : bool =
+	let p = player c pl in
+	match List.nth il pt with
+	| Some (col, s) when s=Town ->
+			(*Town is of correct color AND we can afford a city AND we have not exceeded max num of cities*)
+			 col = c && can_pay p cCOST_CITY && (num_cities_of c il) < cMAX_CITIES_PER_PLAYER
+	| _ -> false
 

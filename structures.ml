@@ -13,12 +13,17 @@ let indexed (l : 'a list) : (int * 'a) list =
 
 (* add_road c l rl adds a road on line l for color c to the road list rl.
    Fails if a road already exists on l *)
-let add_road c ln rl : road list =
+let initial_add_road c ln rl : road list =
 	let pt1,pt2 = ln in
-	if not (List.mem pt1 (adjacent_points pt2)) || 
-	       List.exists (fun (_,(rpt1, rpt2)) -> (rpt1,rpt2) = ln || (rpt2,rpt1) = ln ) rl
-	then failwith "Cannot make a road here."
+	if not (List.mem pt1 (adjacent_points pt2)) ||
+		List.exists (fun (_,(rpt1, rpt2)) -> (rpt1,rpt2) = ln || (rpt2,rpt1) = ln ) rl
+		then failwith "Cannot make a road here."
 	else print (sprintf "road at %i and %i" pt1 pt2); (c, ln)::rl
+
+(*In this method we assume that rd is a valid road placement. Places the road*)
+let add_road rd rl : road list =
+	let c,(pt1,pt2) = rd in
+	print (sprintf "road at %i and %i" pt1 pt2); rd::rl
 
 (* add a town for color c at point pt on intersection list il.
    Raises an exception if there is a previous settlement at that point or
@@ -36,11 +41,22 @@ let add_town c pt il : intersection list =
 		[] indexed_intersections
 
 
+let all_possible_roads (roadl : road list) (c : color) : road list =
+	let rec helper roadl acc = 
+		match roadl with
+		| (_,(beg,e))::tl ->
+			(*make a list of lines, denoted as (beg, e) tuples*)
+			let adjstart = List.map (fun x -> (c,(beg, x))) (adjacent_points beg) in
+			let adjend = List.map (fun x -> (c,(e, x))) (adjacent_points e) in
+			(*merge the two lists. Duplicates will not mattter. Recurse*)
+			helper tl (adjstart@adjend@acc)
+		| _ -> acc in 
+	helper roadl []
 
 
 let initial c (pt1,pt2) b : board =
 	let m, (il, rl), dk, dis, rob = b in
-	let structures' = try ( (add_town c (pt1) il), (add_road c (pt1, pt2) rl) ) 
+	let structures' = try ( (add_town c (pt1) il), (initial_add_road c (pt1, pt2) rl) ) 
 		              with _ -> failwith "Failed to place initial road and settlement." in
 	(m, structures', dk, dis, rob)
 
@@ -66,10 +82,23 @@ let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
 (* If c can built a road on line *)
-let valid_build_road c ln =
-	failwith "riverrun, past Eve and Adam's "
+let valid_build_road c pl desiredr roadl =
+	let croads = List.filter (fun (col,_) -> col = c) roadl in
+	let targetcol, (_,_) = desiredr in
+	let p = player c pl in
+	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
+	if c=targetcol 
+		&& (can_pay p cCOST_ROAD) 
+		&& List.length (List.filter (fun x -> (snd x) = (snd desiredr)) roadl) = 0 
+		&& List.length croads < cMAX_ROADS_PER_PLAYER then
+		begin
+			(*check if road is valid*)
+			let poss_roads = all_possible_roads croads c in
+			List.length (List.filter (fun x -> (snd x) = (snd desiredr)) poss_roads) <> 0
+		end
+	else false
 	(* not an existing road: not in board's structure's road list *)
-	(* adjacent to a road or town of this player *)
+	(* adjacent to a road or town of this player--This is the same as adjacent to a road of this player *)
 	(* have not exceeded max roads per player *)
 let valid_build_town c pt =
 	failwith "riverrun, past Eve and Adam's "

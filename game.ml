@@ -72,7 +72,7 @@ let rec make_valid (m : move) (g : game) : move =
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
 		(* when player has resources ot make the trade and trade limit not reached *) 
-	| ActionRequest, Action(BuyBuild(BuildRoad(ln))) when valid_build_road cm ln                        -> m
+	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl                 -> m
 		(* and player can pay cost_of_build *)
 	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt                       -> m
 		(* and player can pay *)
@@ -202,8 +202,15 @@ let handle_move g m =
 		end
 
 
+		(*Subtract fee. Place Road. ActionRequest*)
+		| Action (BuyBuild(BuildRoad(c,lin))) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_ROAD c pl in
+			(*Place road*)
+			let rl' = add_road (c,lin) rl in
+			let b' = (hexl, portl), (il, rl'), dk, dis, rob in
+			(b', pl', t, (cm, ActionRequest))
 
-		| Action (BuyBuild(BuildRoad(c,lin))) -> failwith "light of my life, "
 		| Action (BuyBuild(BuildTown(pt))) -> failwith "light of my life, "
 
 		| Action (BuyBuild(BuildCity(pt))) -> failwith "light of my life, "

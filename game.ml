@@ -74,11 +74,11 @@ let rec make_valid (m : move) (g : game) : move =
 		(* when player has resources ot make the trade and trade limit not reached *) 
 	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl                 -> m
 		(* and player can pay cost_of_build *)
-	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt                       -> m
+	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt pl rl il              -> m
 		(* and player can pay *)
 	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt                       -> m
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCard))                                                       -> m
+	| ActionRequest, Action (BuyBuild(BuildCard)) (*when valid_build_card cm pl     *)                      -> m
 		(* when player can pay *)
 	| ActionRequest, _                                                                                  -> Action(EndTurn) 
 
@@ -211,7 +211,13 @@ let handle_move g m =
 			let b' = (hexl, portl), (il, rl'), dk, dis, rob in
 			(b', pl', t, (cm, ActionRequest))
 
-		| Action (BuyBuild(BuildTown(pt))) -> failwith "light of my life, "
+		| Action (BuyBuild(BuildTown(pt))) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_TOWN cm pl in
+			(*Place town--MIGHT want to change this to a function that can't fail. At this point the town should be valid, but better safe than sorry*)
+			let il' = add_town cm pt il in
+			let b' = (hexl, portl), (il', rl), dk, dis, rob in
+			(b', pl', t, (cm, ActionRequest))
 
 		| Action (BuyBuild(BuildCity(pt))) -> failwith "light of my life, "
 		| Action (BuyBuild(BuildCard)) -> failwith "light of my life, "

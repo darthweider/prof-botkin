@@ -40,7 +40,7 @@ let add_town c pt il : intersection list =
 		| _                  ->  ilacc @ [i] )
 		[] indexed_intersections
 
-
+(*Given a list of roads and a color, returns the list of roads that could potential (or have already been) placed by a single player*)
 let all_possible_roads (roadl : road list) (c : color) : road list =
 	let rec helper roadl acc = 
 		match roadl with
@@ -81,9 +81,13 @@ let num_towns_of c il : int =
 let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
+(*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
+let roads_of_one_color c roadl = 
+	List.filter (fun (col,_) -> col = c) roadl
+
 (* If c can built a road on line *)
 let valid_build_road c pl desiredr roadl =
-	let croads = List.filter (fun (col,_) -> col = c) roadl in
+	let croads = roads_of_one_color c roadl in
 	let targetcol, (_,_) = desiredr in
 	let p = player c pl in
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
@@ -100,12 +104,16 @@ let valid_build_road c pl desiredr roadl =
 	(* not an existing road: not in board's structure's road list *)
 	(* adjacent to a road or town of this player--This is the same as adjacent to a road of this player *)
 	(* have not exceeded max roads per player *)
-let valid_build_town c pt =
-	failwith "riverrun, past Eve and Adam's "
-	(* no existing settlement *)
-	(* no adjacent settlement. use adjacent_points *)
-	(* color has a road at pt *)
-	(* have not exceeded max towns per player *)
+let valid_build_town c pt pl roadl il=
+	let p = player c pl in
+	let croads = roads_of_one_color c roadl in
+	let pathexists = List.exists (fun (col, (s, e)) -> s=pt || e=pt) croads in
+	let adj = adjacent_points pt in
+	(*Is the target settlement empty, and are there no adjacent settlements?*)
+	let empty_in_and_around = List.for_all (fun x -> (List.nth il x) = None) (pt::adj) in
+	(*we can afford a town AND we have not exceeded max # of towns AND the target+adjacent squares=empty AND road leads to point*)
+	can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && empty_in_and_around && pathexists
+
 let valid_build_city c pt =
 	failwith "riverrun, past Eve and Adam's "
 	(* c already has a town at pt *)

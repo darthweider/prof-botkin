@@ -42,7 +42,7 @@ let valid_rob (pc,copt) b =
 
 let rec random_rob b : move =
 	let _,(il,_),_,_,rob = b in
-	let ran_pc = Random.int 18 in
+	let ran_pc = Random.int cNUM_PIECES in
 	if ran_pc = rob 
 		then random_rob b
 	else     RobberMove(ran_pc, pick_random (colors_near ran_pc il))

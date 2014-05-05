@@ -49,3 +49,21 @@ let update_largest_army c pl : player list =
 		| Some(prev_owner)                                             -> pl
 		| None                                                         -> give_largest_army_to c pl
 	else                                                                  pl
+
+
+(* Victory Points that color c is currently holding *)
+let num_victory_cards c pl : int =
+	let hand = cards_of (player c pl) in
+	List.fold_left ( fun vps card -> 
+		match card with
+		| VictoryPoint -> vps + 1
+		| _ -> vps )
+		0 (reveal hand)
+
+let has_won c il pl : bool =
+	let card_pts = cVP_CARD * num_victory_cards c pl in
+	let town_pts = cVP_TOWN * num_towns_of c il in
+	let city_pts = cVP_CITY * num_cities_of c il in
+	let road_pts = if has_longest_road (player c pl) then cVP_LONGEST_ROAD else 0 in
+	let army_pts = if has_largest_army (player c pl) then cVP_LARGEST_ARMY else 0 in
+	card_pts + town_pts + city_pts + road_pts + army_pts > cWIN_CONDITION

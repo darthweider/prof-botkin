@@ -5,6 +5,7 @@ open Print
 open Printf
 open Player (* functions for handling assets and players *)
 open Structures (* functions for roads and setlements: building and initializing *)
+open Trophies
 
 type game = state (* to edit *)
 
@@ -296,8 +297,8 @@ let handle_move g m =
 			(b, pl', t', (next_active, ActionRequest))
 	in
 	let winner : color option =
-		(* if various win conditions -> some color , else *)
-		None in
+		if has_won t.active il pl then Some t.active
+		else None in
 	print_update cm mv (state_of_game g');
 	(winner, g')
 

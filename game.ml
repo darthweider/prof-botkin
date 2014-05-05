@@ -78,7 +78,7 @@ let rec make_valid (m : move) (g : game) : move =
 		(* and player can pay *)
 	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt pl il                 -> m
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCard)) (*when valid_build_card cm pl     *)                      -> m
+	| ActionRequest, Action (BuyBuild(BuildCard)) when valid_build_card cm pl dk                        -> m
 		(* when player can pay *)
 	| ActionRequest, _                                                                                  -> Action(EndTurn) 
 
@@ -227,8 +227,27 @@ let handle_move g m =
 			let b' = (hexl, portl), (il', rl), dk, dis, rob in
 			(b', pl', t, (cm, ActionRequest))
 			
-		| Action (BuyBuild(BuildCard)) -> failwith "light of my life, "
-			(* remove card from deck *)
+		| Action (BuyBuild(BuildCard)) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_CARD cm pl in
+			(*Unwrap the deck*)
+			let revdeck = reveal dk in
+			(*Get the deck size*)
+			let dksize = List.length revdeck in
+			(*Draw a random card from the range [0...dksize-1]*)
+			let rmcard_index = Random.int dksize in
+			let card = List.nth (reveal dk) rmcard_index in
+			(*Remove the card from the unwrapped list; rewrap the new deck*)
+			let dk' = Reveal (List.filter (fun x -> x <> card) revdeck) in
+			(*Store the drawn card*)
+			let cardsb = Reveal( card::(reveal t.cardsbought)) in
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
+			          cardsbought = cardsb ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			          (*Update the board with new deck*)
+			let b' = (hexl, portl), (il, rl), dk', dis, rob in
+			(*Update the game with new board, new playerlist (costs removed), new turn (card added)*)
+			(b', pl', t', (cm, ActionRequest))
 		| Action (PlayCard(PlayKnight(rm))) -> failwith "fire of my loins"
 			(* add card to discard pile *)
 		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) -> failwith "fire of my loins"

@@ -11,6 +11,59 @@ let indexed (l : 'a list) : (int * 'a) list =
 	indexed
 
 
+
+(*==================ROADS======================*)
+
+(*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
+let roads_of c roadl = 
+	List.filter (fun (col,_) -> col = c) roadl
+
+(*Given a list of roads and a color, returns the list of roads that could potential (or have already been) placed by a single player*)
+let all_possible_roads (roadl : road list) (c : color) : road list =
+	let rec helper roadl acc = 
+		match roadl with
+		| (_,(beg,e))::tl ->
+			(*make a list of lines, denoted as (beg, e) tuples*)
+			let adjstart = List.map (fun x -> (c,(beg, x))) (adjacent_points beg) in
+			let adjend = List.map (fun x -> (c,(e, x))) (adjacent_points e) in
+			(*merge the two lists. Duplicates will not mattter. Recurse*)
+			helper tl (adjstart@adjend@acc)
+		| _ -> acc in 
+	helper roadl []
+
+(* the color who currently owns the longest road trophy *)
+let longest_road_owner pl : color option =
+	try Some ( color_of (List.find has_longest_road pl) )
+	with Not_found -> None
+
+(* gives the longest road trophy to color c, and removes the trophy
+   from all other players *)
+let give_longest_road_to c pl : player list =
+	List.map ( fun p ->
+		let (c,h,(k,longest,largest)) = p in 
+		if color_of p = c 
+			then (c,h,(k,true,largest))
+		else (c,h,(k,false,largest))) pl
+
+(* if color c now has the longest road, update the trophies of c accordingly *)
+let update_longest_road c rl pl : player list =
+	let len = List.length (roads_of c rl) in
+	if len >= cMIN_LONGEST_ROAD
+		then match longest_road_owner pl with
+		| Some(prev_owner) when len > List.length (roads_of prev_owner rl)
+		                     -> give_longest_road_to c pl
+		| Some(prev_owner)   -> pl
+		| None               -> give_longest_road_to c pl
+	else                        pl
+
+
+
+(*In this method we assume that rd is a valid road placement. Places the road*)
+let add_road rd rl : road list =
+	(*let c,(pt1,pt2) = rd in*)
+	rd::rl
+	(* print (sprintf "road at %i and %i" pt1 pt2); *)
+
 (* add_road c l rl adds a road on line l for color c to the road list rl.
    Fails if a road already exists on l *)
 let initial_add_road c ln rl : road list =
@@ -18,12 +71,8 @@ let initial_add_road c ln rl : road list =
 	if not (List.mem pt1 (adjacent_points pt2)) ||
 		List.exists (fun (_,(rpt1, rpt2)) -> (rpt1,rpt2) = ln || (rpt2,rpt1) = ln ) rl
 		then failwith "Cannot make a road here."
-	else print (sprintf "road at %i and %i" pt1 pt2); (c, ln)::rl
-
-(*In this method we assume that rd is a valid road placement. Places the road*)
-let add_road rd rl : road list =
-	let c,(pt1,pt2) = rd in
-	print (sprintf "road at %i and %i" pt1 pt2); rd::rl
+	else (c, ln)::rl
+	(* print (sprintf "road at %i and %i" pt1 pt2); *)
 
 (* add a town for color c at point pt on intersection list il.
    Raises an exception if there is a previous settlement at that point or
@@ -47,29 +96,14 @@ let add_city c pt il : intersection list =
 		if loc = pt then ilacc @ [Some(c, City)]
 		else ilacc @ [i]) [] indexed_intersections
 
-(*Given a list of roads and a color, returns the list of roads that could potential (or have already been) placed by a single player*)
-let all_possible_roads (roadl : road list) (c : color) : road list =
-	let rec helper roadl acc = 
-		match roadl with
-		| (_,(beg,e))::tl ->
-			(*make a list of lines, denoted as (beg, e) tuples*)
-			let adjstart = List.map (fun x -> (c,(beg, x))) (adjacent_points beg) in
-			let adjend = List.map (fun x -> (c,(e, x))) (adjacent_points e) in
-			(*merge the two lists. Duplicates will not mattter. Recurse*)
-			helper tl (adjstart@adjend@acc)
-		| _ -> acc in 
-	helper roadl []
-
-
+(* adds an initial road and an initial town *)
 let initial c (pt1,pt2) b : board =
 	let m, (il, rl), dk, dis, rob = b in
 	let structures' = try ( (add_town c (pt1) il), (initial_add_road c (pt1, pt2) rl) ) 
 		              with _ -> failwith "Failed to place initial road and settlement." in
 	(m, structures', dk, dis, rob)
 
-let valid_initial c ln b : bool =
-	try (fun x -> true) (initial c ln b)
-	with _ -> false
+
 
 let rec random_initialmove c b : move =
 	let rand_pt1 = Random.int 53 in
@@ -94,13 +128,11 @@ let num_cities_of c il : int =
 let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
-(*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
-let roads_of_one_color c roadl = 
-	List.filter (fun (col,_) -> col = c) roadl
+
 
 (* If c can built a road on line *)
 let valid_build_road c pl desiredr roadl =
-	let croads = roads_of_one_color c roadl in
+	let croads = roads_of c roadl in
 	let targetcol, (_,_) = desiredr in
 	let p = player c pl in
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
@@ -119,7 +151,7 @@ let valid_build_road c pl desiredr roadl =
 	(* have not exceeded max roads per player *)
 let valid_build_town c pt pl roadl il=
 	let p = player c pl in
-	let croads = roads_of_one_color c roadl in
+	let croads = roads_of c roadl in
 	let pathexists = List.exists (fun (col, (s, e)) -> s=pt || e=pt) croads in
 	let adj = adjacent_points pt in
 	(*Is the target settlement empty, and are there no adjacent settlements?*)
@@ -135,3 +167,6 @@ let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersect
 			 col = c && can_pay p cCOST_CITY && (num_cities_of c il) < cMAX_CITIES_PER_PLAYER
 	| _ -> false
 
+let valid_initial c ln b : bool =
+	try (fun x -> true) (initial c ln b)
+	with _ -> false

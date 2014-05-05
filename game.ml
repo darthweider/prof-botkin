@@ -33,7 +33,7 @@ let colors_near (pc : piece) (il : intersection list) : color list =
    If a color is not indicated, there must be no colors adjacent to pc. *)
 let valid_rob (pc,copt) b =
 	let m, (il, rl), dk, dis, rob = b in
-	if pc = rob then false
+	if pc = rob || not (valid_pc pc) then false
 	else 
 		match copt with
 		| None when colors_near pc il = []            -> true

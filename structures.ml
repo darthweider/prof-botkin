@@ -105,12 +105,14 @@ let initial c (pt1,pt2) b : board =
 let valid_point pt =
 	0 <= pt && pt <=cMAX_POINT_NUM
 
+let valid_pc pc = 
+	0 <= pc && pc <=cMAX_PIECE_NUM
+
 
 (* If c can built a road on line *)
 let valid_build_road c pl desiredr roadl =
-	let (_,(s, e)) = desiredr in
+	let (targetcol,(s, e)) = desiredr in
 	let croads = roads_of c roadl in
-	let targetcol, (_,_) = desiredr in
 	let p = player c pl in
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
 	if c=targetcol 
@@ -132,18 +134,25 @@ let valid_build_town c pt pl roadl il=
 	let croads = roads_of c roadl in
 	let pathexists = List.exists (fun (col, (s, e)) -> s=pt || e=pt) croads in
 	let adj = adjacent_points pt in
-	(*Is the target settlement empty, and are there no adjacent settlements?*)
-	let empty_in_and_around = List.for_all (fun x -> (List.nth il x) = None) (pt::adj) in
-	(*we can afford a town AND we have not exceeded max # of towns AND the target+adjacent squares=empty AND road leads to point*)
-	can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && empty_in_and_around && pathexists
+	if valid_point pt then begin
+		(*Is the target settlement empty, and are there no adjacent settlements?*)
+		let empty_in_and_around = List.for_all (fun x -> (List.nth il x) = None) (pt::adj) in
+		(*we can afford a town AND we have not exceeded max # of towns AND the target+adjacent squares=empty AND road leads to point*)
+		can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && empty_in_and_around && pathexists	
+	end
+	else false
+
 
 let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersection list) : bool =
 	let p = player c pl in
-	match List.nth il pt with
-	| Some (col, s) when s=Town ->
-			(*Town is of correct color AND we can afford a city AND we have not exceeded max num of cities*)
-			 col = c && can_pay p cCOST_CITY && (num_cities_of c il) < cMAX_CITIES_PER_PLAYER
-	| _ -> false
+	if valid_point pt then begin
+		match List.nth il pt with
+		| Some (col, s) when s=Town ->
+				(*Town is of correct color AND we can afford a city AND we have not exceeded max num of cities*)
+				 col = c && can_pay p cCOST_CITY && (num_cities_of c il) < cMAX_CITIES_PER_PLAYER
+		| _ -> false
+	end
+	else false
 
 
 let valid_initial c ln b : bool =
@@ -151,7 +160,7 @@ let valid_initial c ln b : bool =
 	with _ -> false
 
 let rec random_initialmove c b : move =
-	let rand_pt1 = Random.int 53 in
+	let rand_pt1 = Random.int cNUM_POINTS in
 	let rand_pt2 = get_some (pick_random (adjacent_points rand_pt1)) in
 	let rand_ln = (rand_pt1, rand_pt2) in
 	if valid_initial c rand_ln b then InitialMove(rand_ln)

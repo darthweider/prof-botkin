@@ -51,6 +51,8 @@ let update_largest_army c pl : player list =
 	else                                                                  pl
 
 
+
+
 (* Victory Points that color c is currently holding *)
 let num_victory_cards c pl : int =
 	let hand = cards_of (player c pl) in
@@ -60,6 +62,7 @@ let num_victory_cards c pl : int =
 		| _ -> vps )
 		0 (reveal hand)
 
+(* if color c has won *)
 let has_won c il pl : bool =
 	let card_pts = cVP_CARD * num_victory_cards c pl in
 	let town_pts = cVP_TOWN * num_towns_of c il in

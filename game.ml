@@ -70,7 +70,7 @@ let rec make_valid (m : move) (g : game) : move =
 	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
 	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed       ->  m
 	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed     ->  m
-	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed                ->  m
+	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl)               ->  m
 	| ActionRequest, _ when is_none t.dicerolled                                              ->  Action(RollDice)
 	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1     -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 

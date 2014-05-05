@@ -68,16 +68,16 @@ let rec make_valid (m : move) (g : game) : move =
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
 	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
-	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed       ->  m
-	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed     ->  m
-	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl)               ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed && valid_road_building cm pl rl rd1 rd2     ->  m
+	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed && valid_year cm pl     ->  m
+	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl res)               ->  m
 	| ActionRequest, _ when is_none t.dicerolled                                              ->  Action(RollDice)
 	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1     -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
 		(* when player has resources ot make the trade and trade limit not reached *) 
-	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl                 -> m
+	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl cCOST_ROAD      -> m
 		(* and player can pay cost_of_build *)
 	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt pl rl il              -> m
 		(* and player can pay *)

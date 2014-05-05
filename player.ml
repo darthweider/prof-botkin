@@ -233,10 +233,21 @@ let valid_play_card card c pl : bool =
 	fst (have_card_of card h')	
 
 let valid_knight (c : color) (pl : player list) : bool =
+	(*Player has the card in hand*)
 	valid_play_card Knight c pl
 	
-let valid_monopoly c pl : bool =
-	valid_play_card Monopoly c pl
+let valid_monopoly (c : color) (pl : player list) (res : resource) : bool =
+	let p = player c pl in
+	let cost = n_resource_cost res 1 in
+	(*Player has at least one of said resource AND has a monopoly card in their hand*)
+	can_pay p cost && valid_play_card Monopoly c pl
+
+let valid_year (c : color) (pl : player list) : bool =
+	(*Player has the card in hand*)
+	valid_play_card YearOfPlenty c pl
+
+
+	
 
 
 

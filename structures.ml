@@ -109,14 +109,14 @@ let valid_pc pc =
 	0 <= pc && pc <=cMAX_PIECE_NUM
 
 
-(* If c can built a road on line *)
-let valid_build_road c pl desiredr roadl =
+(* If c can built a road on line. The road cost "cost"--that way we can recycle function for placing free roads *)
+let valid_build_road c pl desiredr roadl cost=
 	let (targetcol,(s, e)) = desiredr in
 	let croads = roads_of c roadl in
 	let p = player c pl in
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
 	if c=targetcol 
-		&& (can_pay p cCOST_ROAD) 
+		&& (can_pay p cost) 
 		&& List.length (List.filter (fun x -> (snd x) = (snd desiredr)) roadl) = 0 
 		&& List.length croads < cMAX_ROADS_PER_PLAYER
 		&& valid_point s && valid_point e then
@@ -153,6 +153,36 @@ let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersect
 		| _ -> false
 	end
 	else false
+
+(*Verify that the road building card can be played*)
+let valid_road_building (c: color) (pl: player list) (rl : road list) (road1 : road) (road2 : road option) = 
+	let firstvalid = valid_build_road c pl road1 rl (0,0,0,0,0) in
+	(*If we're only building one road*)
+	if is_none road2 then begin
+		firstvalid && valid_play_card RoadBuilding c pl
+	end
+	(*If we're building both roads*)
+	else (
+		let road2 = get_some road2 in
+		let secondvalid = valid_build_road c pl road2 rl (0,0,0,0,0) in
+		match (firstvalid, secondvalid) with
+		| true, false -> begin
+			(*Check if placing first road makes second road valid*)
+			let rl' = add_road road1 rl in
+			(valid_play_card RoadBuilding c pl) &&valid_build_road c pl road2 rl' (0,0,0,0,0)
+		end
+		| false, true -> begin
+			(*Check if placing second road makes first road valid*)
+			let rl' = add_road road2 rl in
+			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' (0,0,0,0,0)
+		end
+		| true, true ->begin
+			(*We pick a valid road (either in this case) and see if we can place both*)
+			let rl' = add_road road2 rl in
+			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' (0,0,0,0,0)
+		end
+		| _ -> false
+	)
 
 
 let valid_initial c ln b : bool =

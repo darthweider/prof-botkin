@@ -14,7 +14,7 @@ let trophs_of (c, h, t) : trophies = t
 let num_knights p : int = let (k,_,_) = trophs_of p in k
 let has_longest_road p : bool = let (_,longest,_) = trophs_of p in longest
 let has_largest_army p : bool = let (_,_,largest) = trophs_of p in largest
-
+let num_res_of (c, (i, cds), t) res = num_resource_in_inventory i res
 
 (* player c pl return the player corresponding to color c in pl *)
 let player (c : color) (pl : player list) : player =

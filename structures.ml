@@ -110,7 +110,7 @@ let valid_pc pc =
 
 
 (* If c can built a road on line. The road cost "cost"--that way we can recycle function for placing free roads *)
-let valid_build_road c pl desiredr roadl cost=
+let valid_build_road c pl desiredr roadl il cost=
 	let (targetcol,(s, e)) = desiredr in
 	let croads = roads_of c roadl in
 	let p = player c pl in
@@ -123,7 +123,13 @@ let valid_build_road c pl desiredr roadl cost=
 		begin
 			(*check if road is valid*)
 			let poss_roads = all_possible_roads croads c in
-			List.length (List.filter (fun x -> (snd x) = (snd desiredr)) poss_roads) <> 0
+			(*Check end points to see if we're trying to build over an enemy settlement. If we are, check that the other end of our road
+				meets with another one of our roads*)
+			let not_interfering = match (List.nth il s), (List.nth il e) with
+				| (Some(col, _), _) when c <> col-> List.length (List.filter (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) roadl) <> 0
+				| (_, Some(col, _)) when c <> col-> List.length (List.filter (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) roadl) <> 0
+				| _ -> true in
+			List.length (List.filter (fun x -> (snd x) = (snd desiredr)) poss_roads) <> 0 && not_interfering
 		end
 	else false
 	(* not an existing road: not in board's structure's road list *)
@@ -155,8 +161,8 @@ let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersect
 	else false
 
 (*Verify that the road building card can be played*)
-let valid_road_building (c: color) (pl: player list) (rl : road list) (road1 : road) (road2 : road option) = 
-	let firstvalid = valid_build_road c pl road1 rl (0,0,0,0,0) in
+let valid_road_building (c: color) (pl: player list) (rl : road list) (il : intersection list) (road1 : road) (road2 : road option) = 
+	let firstvalid = valid_build_road c pl road1 rl il (0,0,0,0,0) in
 	(*If we're only building one road*)
 	if is_none road2 then begin
 		firstvalid && valid_play_card RoadBuilding c pl
@@ -164,22 +170,22 @@ let valid_road_building (c: color) (pl: player list) (rl : road list) (road1 : r
 	(*If we're building both roads*)
 	else (
 		let road2 = get_some road2 in
-		let secondvalid = valid_build_road c pl road2 rl (0,0,0,0,0) in
+		let secondvalid = valid_build_road c pl road2 rl il (0,0,0,0,0) in
 		match (firstvalid, secondvalid) with
 		| true, false -> begin
 			(*Check if placing first road makes second road valid*)
 			let rl' = add_road road1 rl in
-			(valid_play_card RoadBuilding c pl) &&valid_build_road c pl road2 rl' (0,0,0,0,0)
+			(valid_play_card RoadBuilding c pl) &&valid_build_road c pl road2 rl' il (0,0,0,0,0)
 		end
 		| false, true -> begin
 			(*Check if placing second road makes first road valid*)
 			let rl' = add_road road2 rl in
-			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' (0,0,0,0,0)
+			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' il (0,0,0,0,0)
 		end
 		| true, true ->begin
 			(*We pick a valid road (either in this case) and see if we can place both*)
 			let rl' = add_road road2 rl in
-			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' (0,0,0,0,0)
+			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' il (0,0,0,0,0)
 		end
 		| _ -> false
 	)

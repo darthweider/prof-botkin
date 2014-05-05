@@ -31,30 +31,27 @@ let all_possible_roads (roadl : road list) (c : color) : road list =
 		| _ -> acc in 
 	helper roadl []
 
-(* the color who currently owns the longest road trophy *)
-let longest_road_owner pl : color option =
-	try Some ( color_of (List.find has_longest_road pl) )
-	with Not_found -> None
 
-(* gives the longest road trophy to color c, and removes the trophy
-   from all other players *)
-let give_longest_road_to c pl : player list =
-	List.map ( fun p ->
-		let (c,h,(k,longest,largest)) = p in 
-		if color_of p = c 
-			then (c,h,(k,true,largest))
-		else (c,h,(k,false,largest))) pl
 
-(* if color c now has the longest road, update the trophies of c accordingly *)
-let update_longest_road c rl pl : player list =
-	let len = List.length (roads_of c rl) in
-	if len >= cMIN_LONGEST_ROAD
-		then match longest_road_owner pl with
-		| Some(prev_owner) when len > List.length (roads_of prev_owner rl)
-		                     -> give_longest_road_to c pl
-		| Some(prev_owner)   -> pl
-		| None               -> give_longest_road_to c pl
-	else                        pl
+(*==================SETTLEMENTS=====================*)
+let num_towns_of c il : int =
+	list_count ( fun i -> 
+		match i with 
+		| Some(color,s) when color = c -> true 
+		| _ -> false ) il
+
+let num_cities_of c il : int =
+	list_count (fun i -> 
+		match i with
+		| Some(col, s) when s = City && col = c-> true
+		| _ -> false) il
+
+let num_towns_total pl il : int =
+	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
+
+
+
+(*================ADDING/BUILDING THINGS===============*)
 
 
 
@@ -73,6 +70,8 @@ let initial_add_road c ln rl : road list =
 		then failwith "Cannot make a road here."
 	else (c, ln)::rl
 	(* print (sprintf "road at %i and %i" pt1 pt2); *)
+
+
 
 (* add a town for color c at point pt on intersection list il.
    Raises an exception if there is a previous settlement at that point or
@@ -103,30 +102,6 @@ let initial c (pt1,pt2) b : board =
 		              with _ -> failwith "Failed to place initial road and settlement." in
 	(m, structures', dk, dis, rob)
 
-
-
-let rec random_initialmove c b : move =
-	let rand_pt1 = Random.int 53 in
-	let rand_pt2 = get_some (pick_random (adjacent_points rand_pt1)) in
-	let rand_ln = (rand_pt1, rand_pt2) in
-	if valid_initial c rand_ln b then InitialMove(rand_ln)
-	else random_initialmove c b
-
-
-let num_towns_of c il : int =
-	list_count ( fun i -> 
-		match i with 
-		| Some(color,s) when color = c -> true 
-		| _ -> false ) il
-
-let num_cities_of c il : int =
-	list_count (fun i -> 
-		match i with
-		| Some(col, s) when s = City && col = c-> true
-		| _ -> false) il
-
-let num_towns_total pl il : int =
-	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
 
 
@@ -167,6 +142,14 @@ let valid_build_city (c : color) (pt : point) (pl : player list) (il : intersect
 			 col = c && can_pay p cCOST_CITY && (num_cities_of c il) < cMAX_CITIES_PER_PLAYER
 	| _ -> false
 
+
 let valid_initial c ln b : bool =
 	try (fun x -> true) (initial c ln b)
 	with _ -> false
+
+let rec random_initialmove c b : move =
+	let rand_pt1 = Random.int 53 in
+	let rand_pt2 = get_some (pick_random (adjacent_points rand_pt1)) in
+	let rand_ln = (rand_pt1, rand_pt2) in
+	if valid_initial c rand_ln b then InitialMove(rand_ln)
+	else random_initialmove c b

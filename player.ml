@@ -206,18 +206,13 @@ let valid_mari_trade (c : color) (pl : player list) (il : intersection list) (pl
 
 
 let valid_build_card (c: color) (pl : player list) (d: deck) =
-	(*Verify that player has less than maximum number of cards
-	  Verify that player has enough resources
+	(*Verify that player has enough resources
 	  Verify that the deck is not empty*)
 	let p = player c pl in
 	let decksize = match d with 
 		| Hidden(x) -> x
 		| Reveal(l) -> List.length l in
-	let (col, (inv, h), _) = p in
-	let handsize = match h with
-		| Hidden(x) -> x
-		| Reveal(l) -> List.length l in
-	can_pay p cCOST_CARD  && decksize > 0 && handsize < cMAX_HAND_SIZE
+	can_pay p cCOST_CARD  && decksize > 0
 
 (*Returns a tuple of (bool, card list) where bool is (this card is in our hand) and the card list is the hand with one of card
 	(if any) removed*)

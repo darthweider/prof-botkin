@@ -222,6 +222,8 @@ let handle_move g m =
 			(*Place town--MIGHT want to change this to a function that can't fail. At this point the town should be valid, but better safe than sorry*)
 			let il' = add_town cm pt il in
 			let b' = (hexl, portl), (il', rl), dk, dis, rob in
+			(*Placing a settlement could interupt the longest road. Recurse through all players redistributing longest road trophy*)
+			let pl' = List.fold_left (fun plh (c,_,_) -> update_longest_road c rl il' plh ) pl' pl' in
 			(b', pl', t, (cm, ActionRequest))
 
 		| Action (BuyBuild(BuildCity(pt))) -> 
@@ -279,6 +281,7 @@ let handle_move g m =
 					add_to_inv stolen cm pl' 
 				end in
 			let pl'' = update cm pl'' (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn+1, t1, t2))) in
+			let pl'' = update_largest_army cm pl'' in
 			(*Update largest army*)
 			let n' = cm, ActionRequest in
 			(b', pl'', t', n')

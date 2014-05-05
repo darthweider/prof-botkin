@@ -102,11 +102,13 @@ let initial c (pt1,pt2) b : board =
 		              with _ -> failwith "Failed to place initial road and settlement." in
 	(m, structures', dk, dis, rob)
 
-
+let valid_point pt =
+	0 <= pt && pt <=cMAX_POINT_NUM
 
 
 (* If c can built a road on line *)
 let valid_build_road c pl desiredr roadl =
+	let (_,(s, e)) = desiredr in
 	let croads = roads_of c roadl in
 	let targetcol, (_,_) = desiredr in
 	let p = player c pl in
@@ -114,7 +116,8 @@ let valid_build_road c pl desiredr roadl =
 	if c=targetcol 
 		&& (can_pay p cCOST_ROAD) 
 		&& List.length (List.filter (fun x -> (snd x) = (snd desiredr)) roadl) = 0 
-		&& List.length croads < cMAX_ROADS_PER_PLAYER then
+		&& List.length croads < cMAX_ROADS_PER_PLAYER
+		&& valid_point s && valid_point e then
 		begin
 			(*check if road is valid*)
 			let poss_roads = all_possible_roads croads c in

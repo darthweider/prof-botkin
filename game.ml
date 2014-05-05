@@ -56,6 +56,7 @@ let rec make_valid (m : move) (g : game) : move =
 	let b, pl, t, (cm, rq) = g in
 	let (hlist, plist), (il, rl), dk, dis, rob = b in
 
+
 	match rq, m with
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
 	| InitialRequest, _                                             ->  random_initialmove cm b
@@ -65,9 +66,12 @@ let rec make_valid (m : move) (g : game) : move =
 	| DiscardRequest, _                                             ->  random_discard (inv_of (player cm pl))
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
-	| ActionRequest, Action(PlayCard(pc)) when not t.cardplayed     ->  m
-	| ActionRequest, _ when is_none t.dicerolled                    ->  Action(RollDice)
-	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1 -> m
+	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed       ->  m
+	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed     ->  m
+	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed                ->  m
+	| ActionRequest, _ when is_none t.dicerolled                                              ->  Action(RollDice)
+	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1     -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
@@ -248,8 +252,36 @@ let handle_move g m =
 			let b' = (hexl, portl), (il, rl), dk', dis, rob in
 			(*Update the game with new board, new playerlist (costs removed), new turn (card added)*)
 			(b', pl', t', (cm, ActionRequest))
-		| Action (PlayCard(PlayKnight(rm))) -> failwith "fire of my loins"
-			(* add card to discard pile *)
+		| Action (PlayCard(PlayKnight(pc, copt))) ->
+
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of Knight h in
+			(*add the card to discard*)
+			let dis' = Knight::dis in
+			(*Move the robber*)
+			let b' = (hexl, portl), (il, rl), dk, dis', pc in
+
+			let pl'' =
+				match copt with
+				| None -> pl
+				| Some(c) -> begin
+					(* the cost of one random resource that c has *)
+					let stolen = n_random_resources (inv_of (player c pl)) 1 in
+					let pl' = rm_from_inv stolen c pl in
+					add_to_inv stolen cm pl' 
+				end in
+			let pl'' = update cm pl'' (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn+1, t1, t2))) in
+			(*Update largest army*)
+			let n' = cm, ActionRequest in
+			(b', pl'', t', n')
+
 		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) -> failwith "fire of my loins"
 		| Action (PlayCard(PlayRoadBuilding(rd1, None))) -> failwith "fire of my loins"		
 		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) -> failwith "fire of my loins"

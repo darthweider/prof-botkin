@@ -19,10 +19,12 @@ let road_exists (s,e) c rl  il seen_points=
 (*We need to add the roads in our path so far in order to verify if we can place a road*)
 	let roadhere = List.exists (fun (c,(pt1, pt2)) -> (pt1 = s && pt2 = e) || (pt1 = e && pt2 = s)) rl in
 	let rl = reconstruct_path_of c (s, Some(e)) seen_points rl in
+	(*Remove the current road from our reconstruted list*)
+	let rl = List.filter (fun x -> x <> (c, (s, e))) rl in
 	let croads = roads_of c rl in
 	let interfering = match (List.nth il s), (List.nth il e) with
-				| (Some(col, _), _) when c <> col-> (List.exists (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) croads)
-				| (_, Some(col, _)) when c <> col-> (List.exists (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) croads)
+				| (Some(col, _), _) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) croads)
+				| (_, Some(col, _)) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) croads)
 				| _ -> false in
   roadhere || interfering
 
@@ -53,16 +55,20 @@ let rec shortest_path_to (target : point) (c : color) (pl : player list) (fronti
         (*If we have no nodes in frontier and no nodes in our backup frontier, the point is unreachable*)
         | _ -> []
     end 
-    (*Given a target point, finds the next best road to get there. Returns None if impossible*)
+
+    (*Given a target point, finds the next best road to get there. Returns None if impossible.
+    	NOTE: Will return another path to reach target if we already have a road touching target*)
 let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road option=
     let myroads = roads_of c rl in
+    (*Generate the list of all shortest paths from any point this player owns to target*)
     let paths= if List.length myroads = 0 then [] 
         else List.fold_left (fun acc (_, (pt1, pt2)) -> 
         let path1 = shortest_path_to target c pl [(pt1, None)] [] [] rl il in
         let path2 = shortest_path_to target c pl [(pt2, None)] [] [] rl il in
         path1::(path2::acc)) [] myroads in
-        
+       (*Change these paths to path lengths*)
     let pathlengths = List.map (List.length) paths in
+    (*Only choose a path if its length is less than the number of points BUT is not 0*)
     let ((_,chosenPathInd),_) = if List.length paths = 0 then ((0, -1), -1)
                                 else List.fold_left (fun ((minpath, pathindex), index) x -> if x <=minpath && x <> 0 then ((x, index), index+1) 
                                         else ((minpath, pathindex), index+1)) ((cNUM_POINTS, -1),0) pathlengths in

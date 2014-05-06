@@ -13,6 +13,8 @@ let indexed (l : 'a list) : (int * 'a) list =
 
 
 (*==================ROADS======================*)
+let add_road rd rl = 
+	rd::rl
 
 (*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
 let roads_of c roadl = 
@@ -116,8 +118,8 @@ let valid_build_road c pl desiredr roadl il cost=
 			(*Check end points to see if we're trying to build over an enemy settlement. If we are, check that the other end of our road
 				meets with another one of our roads*)
 			let not_interfering = match (List.nth il s), (List.nth il e) with
-				| (Some(col, _), _) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) croads)
-				| (_, Some(col, _)) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) croads)
+				| (Some(col, _), _) when c <> col-> (List.exists (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) croads)
+				| (_, Some(col, _)) when c <> col-> (List.exists (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) croads)
 				| _ -> true in
 			List.length (List.filter (fun (_,(a,b)) -> (a = s && b = e) || (a = e && b = s)) poss_roads) <> 0 && not_interfering
 		end

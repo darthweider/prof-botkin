@@ -25,11 +25,13 @@ module Bot = functor (S : Soul) -> struct
   let build_town = ref(true)
   let turn_count = ref(0)
   let reset_turn = ref(0)
+  let test_target = ref(0)
   (* If you use side effects, start/reset your bot for a new game *)
   let initialize () = build_road:=true; 
                       build_town:=true;
                       turn_count:=0;
-                      reset_turn:=0
+                      reset_turn:=0;
+                      test_target:= Random.int 54
 
   let new_turn () = build_road:=true; 
                     build_town:=true
@@ -41,7 +43,7 @@ module Bot = functor (S : Soul) -> struct
     reset_turn:= (if !reset_turn = !turn_count then !reset_turn
                   else ((new_turn()); !reset_turn+1));
 
-    let rd_start, rd_end = match road_to 53 c pl rl il with
+    let rd_start, rd_end = match road_to !test_target c pl rl il with
       | Some(c, (s, e)) -> s, e
       | None -> print_string "RANDOM NUMBERS USED HERE"; (Random.int 53), (Random.int 54) in
 
@@ -51,9 +53,9 @@ module Bot = functor (S : Soul) -> struct
       | _ -> Random.int 53 in
     let rd_end = rd_start+1 in
 *)
-    let test_path = shortest_path_to 53 c pl [(rd_start, None)] [] [] rl il in
+    let test_path = shortest_path_to !test_target c pl [(rd_start, None)] [] [] rl il in
     print_string ((string_of_color c) ^ "\n");
-    print_string ("Starting Point : " ^ (string_of_int rd_start));
+    print_string ("Starting Point : " ^ (string_of_int rd_start) ^ " Target Point : " ^(string_of_int !test_target) ^ " ");
     print_string (string_of_list (fun (_,(pt1, pt2)) -> "Road : " ^ (string_of_int pt1) ^ " to " ^ (string_of_int pt2) ^ "\n") test_path);
 
     let town_pt = match roads_of c rl with 

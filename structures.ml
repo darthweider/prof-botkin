@@ -13,8 +13,6 @@ let indexed (l : 'a list) : (int * 'a) list =
 
 
 (*==================ROADS======================*)
-let add_road rd rl = 
-	rd::rl
 
 (*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
 let roads_of c roadl = 
@@ -73,6 +71,15 @@ let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
 
+(* list of colors next to a given piece, according to intersection list il *)
+let colors_near (pc : piece) (il : intersection list) : color list =
+	let adj = piece_corners pc in 
+	List.fold_left (fun clist pt -> 
+		match List.nth il pt with
+		| Some(c,settle) -> c::clist
+		| None -> clist )
+		[] adj
+
 
 (*================MAP INFORMATION===============*)
 let valid_point pt =
@@ -95,8 +102,6 @@ let all_available_pts il : int list =
 	match List.nth il pt with
 	| None when (area_free pt il) -> pt::available 
 	| _ -> available ) [] all_pts
-
-
 
 
 (*=====================VALIDATING FOR BUILDING=================*)
@@ -127,7 +132,7 @@ let valid_build_road c pl desiredr roadl il cost=
 	(* not an existing road: not in board's structure's road list *)
 	(* adjacent to a road or town of this player--This is the same as adjacent to a road of this player *)
 	(* have not exceeded max roads per player *)
-let valid_build_town c pt pl roadl il=
+	let valid_build_town c pt pl roadl il=
 	let p = player c pl in
 	let croads = roads_of c roadl in
 	let pathexists = List.exists (fun (col, (s, e)) -> s=pt || e=pt) croads in
@@ -188,6 +193,8 @@ let valid_initial c ln b : bool =
 
 
 (*==================BUILDING FUNCTIONS==============*)
+let add_road rd rl = 
+	rd::rl
 
 (* add a town for color c at point pt on intersection list il.
    Assumes this is a valid move *)
@@ -218,11 +225,13 @@ let initial c (pt1,pt2) b : board =
 
 
 (*=================RANDOM MOVE================*)
-
+let random_pt : point = Random.int cNUM_POINTS
+let random_adj_pt pt1 : point = get_some (pick_random (adjacent_points pt1))
+let random_line : line =
+	let pt1 = random_pt in
+	pt1, random_adj_pt pt1
 
 let rec random_initialmove c b : move =
-	let rand_pt1 = Random.int cNUM_POINTS in
-	let rand_pt2 = get_some (pick_random (adjacent_points rand_pt1)) in
-	let rand_ln = (rand_pt1, rand_pt2) in
+	let rand_ln = random_line in
 	if valid_initial c rand_ln b then InitialMove(rand_ln)
 	else random_initialmove c b

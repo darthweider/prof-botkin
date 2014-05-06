@@ -41,22 +41,9 @@ module Bot = functor (S : Soul) -> struct
     reset_turn:= (if !reset_turn = !turn_count then !reset_turn
                   else ((new_turn()); !reset_turn+1));
 
-    let myroads = roads_of c rl in
-    let paths= if List.length myroads = 0 then [] 
-        else List.fold_left (fun acc (_, (pt1, pt2)) -> 
-        let path1 = shortest_path_to 53 c pl [(pt1, None)] [] [] rl il in
-        let path2 = shortest_path_to 53 c pl [(pt2, None)] [] [] rl il in
-        path1::(path2::acc)) [] myroads in
-        
-    let pathlengths = List.map (List.length) paths in
-    let ((_,chosenPathInd),_) = if List.length paths = 0 then ((0, -1), -1)
-                                else List.fold_left (fun ((minpath, pathindex), index) x -> if x <=minpath && x <> 0 then ((x, index), index+1) 
-                                        else ((minpath, pathindex), index+1)) ((cNUM_POINTS, -1),0) pathlengths in
-    let chosenpath = if chosenPathInd = -1 then [] else List.nth paths chosenPathInd in
-
-    let rd_start, rd_end = match chosenpath with
-      | (c, (s, e))::tl -> e,s
-      | [] -> print_string "RANDOM NUMBERS USED HERE"; (Random.int 53), (Random.int 54) in
+    let rd_start, rd_end = match road_to 53 c pl rl il with
+      | Some(c, (s, e)) -> s, e
+      | None -> print_string "RANDOM NUMBERS USED HERE"; (Random.int 53), (Random.int 54) in
 
 (*  
     let rd_start = match roads_of c rl with 

@@ -53,3 +53,21 @@ let rec shortest_path_to (target : point) (c : color) (pl : player list) (fronti
         (*If we have no nodes in frontier and no nodes in our backup frontier, the point is unreachable*)
         | _ -> []
     end 
+    (*Given a target point, finds the next best road to get there. Returns None if impossible*)
+let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road option=
+    let myroads = roads_of c rl in
+    let paths= if List.length myroads = 0 then [] 
+        else List.fold_left (fun acc (_, (pt1, pt2)) -> 
+        let path1 = shortest_path_to target c pl [(pt1, None)] [] [] rl il in
+        let path2 = shortest_path_to target c pl [(pt2, None)] [] [] rl il in
+        path1::(path2::acc)) [] myroads in
+        
+    let pathlengths = List.map (List.length) paths in
+    let ((_,chosenPathInd),_) = if List.length paths = 0 then ((0, -1), -1)
+                                else List.fold_left (fun ((minpath, pathindex), index) x -> if x <=minpath && x <> 0 then ((x, index), index+1) 
+                                        else ((minpath, pathindex), index+1)) ((cNUM_POINTS, -1),0) pathlengths in
+    let chosenpath = if chosenPathInd = -1 then [] else List.nth paths chosenPathInd in
+
+   	match chosenpath with
+      | (c, (s, e))::tl -> Some(c, (e,s))
+      | [] -> print_string "No Path"; None

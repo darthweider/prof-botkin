@@ -31,13 +31,15 @@ let colors_near (pc : piece) (il : intersection list) : color list =
 (* robber is not currently at the piece indicated.
    If a color is indicated, it must have a settlement on an adjacent pt.
    If a color is not indicated, there must be no colors adjacent to pc. *)
-let valid_rob (pc,copt) b =
+let valid_rob (pc,copt) b c pl =
 	let m, (il, rl), dk, dis, rob = b in
+	let p = player c pl in
+	let inv = inv_of p in
 	if pc = rob || not (valid_pc pc) then false
 	else 
 		match copt with
 		| None when colors_near pc il = []            -> true
-		| Some(c) when List.mem c (colors_near pc il) -> true
+		| Some(c) when List.mem c (colors_near pc il) && (sum_cost inv) >0  -> true
 		| _                                           -> false
 
 let rec random_rob b : move =
@@ -61,13 +63,13 @@ let rec make_valid (m : move) (g : game) : move =
 	match rq, m with
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
 	| InitialRequest, _                                             ->  random_initialmove cm b
-	| RobberRequest, RobberMove(rob)   when valid_rob rob b         ->  m 
+	| RobberRequest, RobberMove(rob)   when valid_rob rob b cm pl        ->  m 
 	| RobberRequest, _                                              ->  random_rob b
 	| DiscardRequest, DiscardMove(dis) when valid_discard cm dis pl ->  m
 	| DiscardRequest, _                                             ->  random_discard (inv_of (player cm pl))
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
-	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b                ->  m
+	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b cm pl          ->  m
 	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed && valid_road_building cm pl rl il rd1 rd2     ->  m
 	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed && valid_year cm pl                          ->  m
 	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl res)                           ->  m

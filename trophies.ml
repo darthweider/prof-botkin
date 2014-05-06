@@ -33,7 +33,8 @@ let give_largest_army_to c pl : player list =
 
 (* if color c now has the longest road, update the trophies of c accordingly *)
 let update_longest_road c rl il pl : player list =
-	let len = longest_road c rl il in
+	let len = longest_road c (roads_of c rl) il in
+	print_string (string_of_list (fun (_, (a, b)) -> (string_of_int a) ^ " " ^ (string_of_int b)) rl);
 	if len >= cMIN_LONGEST_ROAD
 		then match longest_road_owner pl with
 		| Some(prev_owner) when len > longest_road prev_owner rl il -> give_longest_road_to c pl

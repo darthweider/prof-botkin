@@ -117,7 +117,7 @@ let valid_build_road c pl desiredr roadl il cost=
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
 	if c=targetcol 
 		&& (can_pay p cost) 
-		&& List.length (List.filter (fun x -> (snd x) = (snd desiredr)) roadl) = 0 
+		&& List.length (List.filter (fun (c, (a,b)) -> (a = s && b = e) || (a = e && b = s)) roadl) = 0 
 		&& List.length croads < cMAX_ROADS_PER_PLAYER
 		&& valid_point s && valid_point e then
 		begin

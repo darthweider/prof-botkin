@@ -9,14 +9,23 @@ let name = "roadbot"
 
 module Bot = functor (S : Soul) -> struct
 
+(*HELPER FUNCTIONS================================================================*)
+(*Given the list of all roads placed and a color c, returns a list of all the roads of color c*)
+let roads_of c roadl = 
+  List.filter (fun (col,_) -> col = c) roadl
+(*================================================================================*)
+
   let build = ref(true)
   (* If you use side effects, start/reset your bot for a new game *)
   let initialize () = build:=true
 
   (* Invalid moves are overridden in game *)
-  let handle_request ((_,p,t,n) : state) : move =
+  let handle_request ((b,p,t,n) : state) : move =
+    let (_, _), (_, rl), _, _, _ = b in
     let (c, r) = n in
-    let rd_start = Random.int 53 in
+    let rd_start = match roads_of c rl with 
+      | (_,(s, e))::tl -> max s e 
+      | _ -> Random.int 53 in
     match r with
       | InitialRequest -> InitialMove(0, 0)
       | RobberRequest -> RobberMove(0, None)

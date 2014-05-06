@@ -2,21 +2,9 @@ open Definition
 open Registry
 open Constant
 open Util
+open Structures
 
-(* a list of all existing points, 0 to cMAX_POINT_NUM 
-   For iterating *)
-let all_pts : int list =
-	let rec nlist n acc : int list =
-		if n = 0 then acc
-		else nlist (n-1) (n :: acc) in
-	nlist cMAX_POINT_NUM []
 
-(* a list of all unoccupied points on the map *)
-let available_pts intersections : int list =
-	List.fold_left ( fun availables pt -> 
-	match List.nth intersections pt with
-	| Some(c,s) -> availables
-	| None -> pt::availables ) [] all_pts
 
 (* the odds of rolling n. Returns the numerator of the probability (denominator is 36 *)
 let odds_of_roll n =
@@ -48,6 +36,15 @@ let best_pts pts map : int list =
 	List.sort (compare_worth map) pts
 
 (* a list of all available points, sorted in order of simple worth *)
-let best_available_pts map intersections : int list =
-	best_pts (available_pts intersections) map
+let best_available_pts_on_map b : int list =
+	let map, (il, _),_,_,_ = b in
+	best_pts (all_available_pts il) map
 
+(* best point for color c to build a town at, based on simple worth. 
+   Returns none if there is nowhere for c to build a town at right now. *)
+let best_build_town_now c b : int option =
+	let map, (il, rl),_,_,_ = b in
+	let pts = road_pts_of c rl in
+	match best_pts pts map with
+	| [] -> None
+	| h::t -> Some(h)

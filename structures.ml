@@ -18,6 +18,11 @@ let indexed (l : 'a list) : (int * 'a) list =
 let roads_of c roadl = 
 	List.filter (fun (col,_) -> col = c) roadl
 
+(* A road has been built on line ln according to road list rl *)
+let exists_road ln rl =
+	List.exists (fun (_,(rpt1, rpt2)) -> (rpt1,rpt2) = ln || (rpt2,rpt1) = ln ) rl
+
+
 (*Given a list of roads and a color, returns the list of roads that could potential (or have already been) placed by a single player*)
 let all_possible_roads (roadl : road list) (c : color) : road list =
 	let rec helper roadl acc = 
@@ -31,6 +36,22 @@ let all_possible_roads (roadl : road list) (c : color) : road list =
 		| _ -> acc in 
 	helper roadl []
 
+(* a list of all existing points, 0 to cMAX_POINT_NUM 
+   For iterating over *)
+let all_pts : int list =
+	let rec nlist n acc : int list =
+		if n = 0 then acc
+		else nlist (n-1) (n :: acc) in
+	nlist cMAX_POINT_NUM []
+
+(* a list of points that are occupied by roads of color c *)
+let road_pts_of c rl =
+	List.fold_left ( fun owned (_,(pt1,pt2)) -> 
+		match List.mem pt1 owned, List.mem pt2 owned with
+		| true, true -> owned
+		| true, false -> pt2::owned 
+		| false, true -> pt1::owned 
+		| false, false -> pt1::pt2::owned ) [] (roads_of c rl)
 
 
 (*==================SETTLEMENTS=====================*)
@@ -51,63 +72,32 @@ let num_towns_total pl il : int =
 
 
 
-(*================ADDING/BUILDING THINGS===============*)
-
-
-
-(*In this method we assume that rd is a valid road placement. Places the road*)
-let add_road rd rl : road list =
-	(*let c,(pt1,pt2) = rd in*)
-	rd::rl
-	(* print (sprintf "road at %i and %i" pt1 pt2); *)
-
-(* add_road c l rl adds a road on line l for color c to the road list rl.
-   Fails if a road already exists on l *)
-let initial_add_road c ln rl : road list =
-	let pt1,pt2 = ln in
-	if not (List.mem pt1 (adjacent_points pt2)) ||
-		List.exists (fun (_,(rpt1, rpt2)) -> (rpt1,rpt2) = ln || (rpt2,rpt1) = ln ) rl
-		then failwith "Cannot make a road here."
-	else (c, ln)::rl
-	(* print (sprintf "road at %i and %i" pt1 pt2); *)
-
-
-
-(* add a town for color c at point pt on intersection list il.
-   Raises an exception if there is a previous settlement at that point or
-   if the surrounding area is not clear of settlements *)
-let add_town c pt il : intersection list =
-	let empty_land = pt :: (adjacent_points pt) in
-	let indexed_intersections = indexed il in
-
-	List.fold_left (fun ilacc (loc, i) ->
-		match i with
-		| Some(s) when List.mem loc empty_land ->
-		    failwith "Cannot place town here. Area is populated by an existing settlement."
-		| None when loc = pt ->  ilacc @ [Some (c,Town)]
-		| _                  ->  ilacc @ [i] )
-		[] indexed_intersections
-
-(*Adds a city at the given index. Assumes that this is a valid move (does not check if it is not)*)
-let add_city c pt il : intersection list = 
-	let indexed_intersections = indexed il in
-	List.fold_left (fun ilacc (loc, i) -> 
-		if loc = pt then ilacc @ [Some(c, City)]
-		else ilacc @ [i]) [] indexed_intersections
-
-(* adds an initial road and an initial town *)
-let initial c (pt1,pt2) b : board =
-	let m, (il, rl), dk, dis, rob = b in
-	let structures' = try ( (add_town c (pt1) il), (initial_add_road c (pt1, pt2) rl) ) 
-		              with _ -> failwith "Failed to place initial road and settlement." in
-	(m, structures', dk, dis, rob)
-
+(*================MAP INFORMATION===============*)
 let valid_point pt =
 	0 <= pt && pt <=cMAX_POINT_NUM
 
 let valid_pc pc = 
 	0 <= pc && pc <=cMAX_PIECE_NUM
 
+let valid_line (pt1,pt2) =
+	valid_point pt1 && valid_point pt2 && List.mem pt1 (adjacent_points pt2)
+
+(* there is no settlement on a given pt, or immediately adjacent to it *)
+let area_free pt il : bool =
+	let adj = adjacent_points pt in
+	List.for_all (fun x -> (List.nth il x) = None) (pt::adj)
+
+(* a list of all unoccupied points on the map whose areas are free *)
+let all_available_pts il : int list =
+	List.fold_left ( fun available pt -> 
+	match List.nth il pt with
+	| None when (area_free pt il) -> pt::available 
+	| _ -> available ) [] all_pts
+
+
+
+
+(*=====================VALIDATING FOR BUILDING=================*)
 
 (* If c can built a road on line. The road cost "cost"--that way we can recycle function for placing free roads *)
 let valid_build_road c pl desiredr roadl il cost=
@@ -139,12 +129,10 @@ let valid_build_town c pt pl roadl il=
 	let p = player c pl in
 	let croads = roads_of c roadl in
 	let pathexists = List.exists (fun (col, (s, e)) -> s=pt || e=pt) croads in
-	let adj = adjacent_points pt in
 	if valid_point pt then begin
 		(*Is the target settlement empty, and are there no adjacent settlements?*)
-		let empty_in_and_around = List.for_all (fun x -> (List.nth il x) = None) (pt::adj) in
 		(*we can afford a town AND we have not exceeded max # of towns AND the target+adjacent squares=empty AND road leads to point*)
-		can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && empty_in_and_around && pathexists	
+		can_pay p cCOST_TOWN && num_towns_of c il < cMAX_TOWNS_PER_PLAYER && (area_free pt il) && pathexists	
 	end
 	else false
 
@@ -174,17 +162,17 @@ let valid_road_building (c: color) (pl: player list) (rl : road list) (il : inte
 		match (firstvalid, secondvalid) with
 		| true, false -> begin
 			(*Check if placing first road makes second road valid*)
-			let rl' = add_road road1 rl in
+			let rl' = road1::rl in
 			(valid_play_card RoadBuilding c pl) &&valid_build_road c pl road2 rl' il (0,0,0,0,0)
 		end
 		| false, true -> begin
 			(*Check if placing second road makes first road valid*)
-			let rl' = add_road road2 rl in
+			let rl' = road2::rl in
 			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' il (0,0,0,0,0)
 		end
 		| true, true ->begin
 			(*We pick a valid road (either in this case) and see if we can place both*)
-			let rl' = add_road road2 rl in
+			let rl' = road2::rl in
 			(valid_play_card RoadBuilding c pl) && valid_build_road c pl road1 rl' il (0,0,0,0,0)
 		end
 		| _ -> false
@@ -192,8 +180,43 @@ let valid_road_building (c: color) (pl: player list) (rl : road list) (il : inte
 
 
 let valid_initial c ln b : bool =
-	try (fun x -> true) (initial c ln b)
-	with _ -> false
+	let _,(il,rl),_,_,_ = b in
+	let pt1,pt2 = ln in
+	(valid_line ln) && (not (exists_road ln rl)) && (area_free pt1 il)
+
+
+(*==================BUILDING FUNCTIONS==============*)
+
+(* add a town for color c at point pt on intersection list il.
+   Assumes this is a valid move *)
+let add_town c pt il : intersection list =
+	let indexed_intersections = indexed il in
+
+	List.fold_left (fun ilacc (loc, i) ->
+		match i with
+		| None when loc = pt ->  ilacc @ [Some (c,Town)]
+		| _                  ->  ilacc @ [i] )
+		[] indexed_intersections
+
+(*Adds a city at the given index. Assumes that this is a valid move (does not check if it is not)*)
+let add_city c pt il : intersection list = 
+	let indexed_intersections = indexed il in
+	List.fold_left (fun ilacc (loc, i) -> 
+		if loc = pt then ilacc @ [Some(c, City)]
+		else ilacc @ [i]) [] indexed_intersections
+
+
+(* adds an initial road and an initial town *)
+let initial c (pt1,pt2) b : board =
+	let m, (il, rl), dk, dis, rob = b in
+	let structures' = try ( (add_town c (pt1) il), ( (c, (pt1, pt2))::rl) ) 
+		              with _ -> failwith "Failed to place initial road and settlement." in
+	(m, structures', dk, dis, rob)
+
+
+
+(*=================RANDOM MOVE================*)
+
 
 let rec random_initialmove c b : move =
 	let rand_pt1 = Random.int cNUM_POINTS in

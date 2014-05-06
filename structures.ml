@@ -117,7 +117,7 @@ let valid_build_road c pl desiredr roadl il cost=
 	(*if target color = c AND if player can afford to build a road AND if a road does not exist at the desired location AND number of roads < max number of roads*)
 	if c=targetcol 
 		&& (can_pay p cost) 
-		&& List.length (List.filter (fun (c, (a,b)) -> (a = s && b = e) || (a = e && b = s)) roadl) = 0 
+		&& not (List.exists (fun (c, (a,b)) -> (a = s && b = e) || (a = e && b = s)) roadl) 
 		&& List.length croads < cMAX_ROADS_PER_PLAYER
 		&& valid_point s && valid_point e then
 		begin
@@ -126,10 +126,10 @@ let valid_build_road c pl desiredr roadl il cost=
 			(*Check end points to see if we're trying to build over an enemy settlement. If we are, check that the other end of our road
 				meets with another one of our roads*)
 			let not_interfering = match (List.nth il s), (List.nth il e) with
-				| (Some(col, _), _) when c <> col-> List.length (List.filter (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) roadl) <> 0
-				| (_, Some(col, _)) when c <> col-> List.length (List.filter (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) roadl) <> 0
+				| (Some(col, _), _) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = e || pt2 = e) croads)
+				| (_, Some(col, _)) when c <> col-> not (List.exists (fun (_, (pt1, pt2)) -> pt1 = s || pt2 = s) croads)
 				| _ -> true in
-			List.length (List.filter (fun x -> (snd x) = (snd desiredr)) poss_roads) <> 0 && not_interfering
+			List.length (List.filter (fun (_,(a,b)) -> (a = s && b = e) || (a = e && b = s)) poss_roads) <> 0 && not_interfering
 		end
 	else false
 	(* not an existing road: not in board's structure's road list *)

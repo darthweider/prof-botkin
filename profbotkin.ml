@@ -30,12 +30,14 @@ module Bot = functor (S : Soul) -> struct
   (* keep array of opponents' resources *)
 
 
-
-  let handle_road_building cm b roadpath : move = 
+  let handle_road_building cm b roadpath rl  : move = 
     match roadpath with 
       | hd::tl -> begin
         match tl with
-        | rd2::l -> Action(PlayCard(PlayRoadBuilding (hd, Some(rd2))))
+        | rd2::l -> begin
+          if List.length (roads_of cm rl) +1 < cMAX_ROADS_PER_PLAYER then Action(PlayCard(PlayRoadBuilding (hd, Some(rd2))))
+          else Action(PlayCard(PlayRoadBuilding (hd, None)))
+        end 
         | [] -> Action(PlayCard(PlayRoadBuilding (hd, None)))
       end
       | [] -> Action(RollDice)
@@ -69,9 +71,9 @@ module Bot = functor (S : Soul) -> struct
       | TradeRequest -> handle_trade t.active t.pendingtrade il pl
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 
-                      && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath
+                      && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath rl 
       | ActionRequest when is_none t.dicerolled -> Action(RollDice)
-      | ActionRequest when not t.cardplayed && have_valid_card cm pl-> Action(EndTurn)
+      | ActionRequest when not t.cardplayed && have_valid_card cm pl-> handle_card cm pl b
       | _ -> Action(EndTurn) 
 end
 

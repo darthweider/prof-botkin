@@ -89,7 +89,7 @@ module Bot = functor (S : Soul) -> struct
                       print_string "Attempting to build a road \n";
                       print_string (string_of_list (fun (_,(pt1, pt2)) -> "Road : " ^ (string_of_int pt1) ^ " to " ^ (string_of_int pt2) ^ "\n") [List.hd roadpath]);
                       Action(BuyBuild(BuildRoad(List.hd roadpath)))
-      | ActionRequest when valid_build_card cm pl (dk_of b)                  -> Action(BuyBuild(BuildCard))
+      | ActionRequest when valid_build_card cm pl (dk_of b)                  -> (print_string "Buying Dev Card"); Action(BuyBuild(BuildCard))
       | _ -> (print_string "Actively ending my turn");Action(EndTurn) 
 end
 

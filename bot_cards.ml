@@ -8,6 +8,7 @@ open Bot_settlements
 open Bot_resources
 open Player
 open Robber
+open Print
 
 
     (*Verifies that we have a playable card in our hand*)
@@ -36,7 +37,7 @@ open Robber
     let (b, w, o, g, l) = enemy_rsc in
     let target_lst = [b; w; o; g; l] in
     let sorted_costs = List.rev (List.sort (compare) target_lst) in
-    let rsc_we_have : bool list = List.map (fun rs -> can_pay p (single_resource_cost rs)) rs_list in
+    let rsc_we_have : bool list = List.rev (List.map (fun rs -> can_pay p (single_resource_cost rs)) rs_list) in
     let rec helper costlist =
     match costlist with
     | highest::tl -> begin

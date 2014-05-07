@@ -6,6 +6,7 @@ open Util
 open Player
 open Structures
 open Roadbfs
+open Bot_settlements
 (** Give your bot a 2-20 character name. *)
 let name = "roadbot"
 
@@ -36,9 +37,17 @@ module Bot = functor (S : Soul) -> struct
   let new_turn () = build_road:=true; 
                     build_town:=true
 
+  let rec handle_initial cm b : move =
+    let tentative_ln = 
+      match best_available_pts_on_map b with
+      | best1::t -> (best1, random_adj_pt best1)
+      | [] -> random_line in
+    if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
+    else handle_initial cm b
+
   (* Invalid moves are overridden in game *)
   let handle_request ((b,pl,t,n) : state) : move =
-    let (_, _), (il, rl), _, _, _ = b in
+    let (hlist, plist), (il, rl), dk, dis, rob = b in
     let (c, r) = n in
     reset_turn:= (if !reset_turn = !turn_count then !reset_turn
                   else ((new_turn()); !reset_turn+1));
@@ -67,7 +76,7 @@ module Bot = functor (S : Soul) -> struct
       (if !build_town then print_string "Build_Town : True "
         else print_string "Build_Town : False ");
     match r with
-      | InitialRequest -> InitialMove(0, 0)
+      | InitialRequest -> handle_initial c b 
       | RobberRequest -> RobberMove(0, None)
       | DiscardRequest-> DiscardMove(0,0,0,0,0)
       | TradeRequest -> TradeResponse(true)

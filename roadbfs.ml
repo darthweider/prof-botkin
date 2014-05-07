@@ -61,7 +61,7 @@ let rec shortest_path_to (target : point) (c : color) (pl : player list) (fronti
 let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road option=
     let myroads = roads_of c rl in
     (*Generate the list of all shortest paths from any point this player owns to target*)
-    let paths= if List.length myroads = 0 then [] 
+    let paths= if List.length myroads = 0 then []
         else List.fold_left (fun acc (_, (pt1, pt2)) -> 
         let path1 = shortest_path_to target c pl [(pt1, None)] [] [] rl il in
         let path2 = shortest_path_to target c pl [(pt2, None)] [] [] rl il in
@@ -77,3 +77,9 @@ let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il 
    	match chosenpath with
       | (c, (s, e))::tl -> Some(c, (e,s))
       | [] -> print_string "No Path"; None
+
+let initial_road_from (init :point) (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : point option =
+	let path = shortest_path_to target c pl [(init, None)] [] [] rl il in
+	match path with 
+		| (_, (pt,_))::tl -> Some(pt)
+		| _ -> None

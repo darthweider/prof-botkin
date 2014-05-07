@@ -173,4 +173,92 @@ let discard_half c pl : cost =
 	discardn n inv
 		
 
+(*==========TRADE INITIATION===========*)
+
+(* the cost that inventory inv can currently contribute towards building something of buildcost *)
+let have_for buildcost inv : cost =
+	map_cost2 ( fun a b -> min a b ) buildcost inv
+
+(* returns the cost that inventory inv still needs to build something of buildcost *)
+let need_for buildcost inv : cost =
+	floor_diff_cost buildcost inv
+
+(* the cost that the inventory can trade in order to accumulate resources for something of buildcost *)
+let free_for_trade buildcost inv : cost = diff_cost inv (have_for buildcost inv)
+
+(* the inventory is one resource away from building something of buildcost *)
+let one_away buildcost inv : bool =
+	sum_cost (need_for cCOST_CITY inv) = 1 
+
+
+(* compares two players p1 and p2 to see which is a better trading partner *)
+let better_partner scores p1 p2 =
+	let s1, s2 = Hashtbl.find scores (color_of p1), Hashtbl.find scores (color_of p2) in
+	if s1 < s2 then 1
+	else if s1 > s2 then ~-1
+	else 0
+
+(* players that have a given cost available *)
+let can_ask_for cost pl : player list =
+	List.fold_left ( fun ask p ->
+		if (can_pay p cost) then p::ask
+		else ask ) [] pl
+
+(* players that should be asked for a trade to get cost, in order of preference. 
+   Players that have trading scores less than 5 are ignored *)
+let should_ask_for cost pl scores : player list =
+	let filtered = List.filter (fun p -> (Hashtbl.find scores (color_of p)) > -5 ) (can_ask_for cost pl) in
+	List.sort (better_partner scores) filtered
+
+(* return a trade type in order to get resources for building something of buildcost, 
+   if such a trade exists *)
+let trade_for buildcost history scores inv pl : trade option =
+	let need = need_for buildcost inv in
+	let can_trade = free_for_trade buildcost inv in
+	let num_can_trade = sum_cost can_trade in
+
+
+	if (one_away buildcost inv) && (num_can_trade > 0) then
+		let will_pay =
+			if num_can_trade < 2 then can_trade
+			else n_resource_cost (highest_resource can_trade) 2 in
+
+		let players_to_ask = should_ask_for buildcost pl scores in
+		let have_not_asked p : bool =
+			not (List.mem ((color_of p),need,will_pay) history) in
+
+		(* ask a player in pl to give us what we need for what we will pay,
+		   as long as we have not asked this already this turn in history *)
+		let rec ask pl =
+			match pl with
+			| [] -> None
+			| p::tl when have_not_asked p -> Some((color_of p),need,will_pay)
+			| p::tl -> ask tl in
+		ask players_to_ask 
+	else None
+
+
+
+(* takes in a list history that lists the previously requested trades 
+   and a hashtable scores that lists the "good trading partner" score 
+   for other colors *)
+let handle_trade_initiate history scores cm pl : move option =
+	let inv = inv_of (player cm pl) in
+	let trade buildcost = trade_for buildcost history scores inv pl in
+	match trade cCOST_CITY with
+	| Some(trd) -> Some (Action(DomesticTrade(trd)))
+	| None ->
+		match trade cCOST_TOWN with
+		| Some(trd) -> Some (Action(DomesticTrade(trd)))
+		| None ->
+			match trade cCOST_CARD with
+			| Some(trd) -> Some (Action(DomesticTrade(trd)))
+			| None -> 
+				match trade cCOST_ROAD with
+					| Some(trd) -> Some (Action(DomesticTrade(trd)))
+					| None -> None
+
+let should_initiate_trade history scores cm pl : bool =
+	not (is_none (handle_trade_initiate history scores cm pl))
+
 

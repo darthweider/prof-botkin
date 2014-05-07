@@ -71,7 +71,8 @@ let random_resource () : resource =
 
 (* from an inventory inv, choose n random resources and return the cost of all those resources *)
 let n_random_resources inv n : cost =
-	let rec helper inv n chosen : cost =
+	if sum_cost (inv_of p) = 0 then empty_cost
+	else let rec helper inv n chosen : cost =
 		if n = 0 then chosen
 		else
 			let ran_rsc = random_resource () in
@@ -81,7 +82,7 @@ let n_random_resources inv n : cost =
 				helper (diff_cost inv c) (n-1) (add_cost chosen c)
 			else let () = print_int n; print_string "n_random_resources" in
 			helper inv n chosen in
-	helper inv n (0,0,0,0,0)
+	helper inv n empty_cost
 
 
 (*=======================UPDATE PLAYER INFORMATION=====================*)

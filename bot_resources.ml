@@ -72,14 +72,14 @@ let best_steal_from pc c il pl : color option =
 	most_resources_excluding c steal_list
 
 
-  let handle_robber cm b pl : move =
-    let il = il_of b in
-    match best_rob_pieces2 cm b with
-    | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-    | [] ->
-      match best_rob_pieces1 cm b with
-      | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-      | [] -> random_rob cm b
+let handle_robber cm b pl : move =
+	let il = il_of b in
+	match best_rob_pieces2 cm b with
+	| pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+	| [] ->
+	  match best_rob_pieces1 cm b with
+	  | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+	  | [] -> random_rob cm b
 
 
 (*==============TRADE RESPONSE================*)
@@ -111,15 +111,20 @@ let okay_trade active c cost1 cost2 il pl =
 	favorable_trade cost1 cost2 &&
 	(vp_estimate active il pl) < (cWIN_CONDITION - 1)
 
+let handle_trade active pendingtrade il pl =
+  match pendingtrade with
+  | Some(c,cost1,cost2) when okay_trade active c cost1 cost2 il pl -> TradeResponse(true)
+  | _ -> TradeResponse(false)
+
 
 (*===================MARITIME TRADE==============*)
-(*
+
 (* returns if color c will have at least two leftover of a resource after paying n of it *)
 let resources_leftover n res c pl =
 	let min_cost = n_resource_cost res (n+2) in
 	can_pay (player c pl) min_cost
 
-*)
+
 
 
 

@@ -14,11 +14,21 @@ let highest_resource c pl : resource =
 	let b,w,o,g,l = inv_of (player c pl) in
 	let sorted_costs = List.rev (List.sort (compare) (b::w::o::g::[l])) in
 	let highest = List.hd sorted_costs in
-	     if highest = b then Brick
-	else if highest = w then Wool
-	else if highest = o then Ore
+	     if highest = w then Wool
 	else if highest = g then Grain
-	else                     Lumber
+	else if highest = o then Ore
+	else if highest = l then Lumber
+	else                     Brick
+
+let lowest_resource c pl : resource =
+	let b,w,o,g,l = inv_of (player c pl) in
+	let sorted_costs = List.sort (compare) (b::w::o::g::[l]) in
+	let lowest = List.hd sorted_costs in
+	     if lowest = b then Brick
+	else if lowest = l then Lumber
+	else if lowest = o then Ore
+	else if lowest = g then Grain
+	else                    Wool
 
 
 (*================ROBBER==================*)
@@ -120,12 +130,23 @@ let handle_trade active pendingtrade il pl =
 (*===================MARITIME TRADE==============*)
 
 (* returns if color c will have at least two leftover of a resource after paying n of it *)
-let resources_leftover n res c pl =
+let resources_leftover n res c pl : bool =
 	let min_cost = n_resource_cost res (n+2) in
 	can_pay (player c pl) min_cost
 
+(* if a maritime trade should be conducted *)
+let should_maritime c pl b : bool =
+	let ports = get_ports c (il_of b) (portl_of b) in
+	let high_res = highest_resource c pl in
+	let rate = best_trade_rate ports high_res in
+	resources_leftover rate high_res c pl
 
-
+(* conducts a maritime trade 
+   PRE the maritime trade is valid: color c can pay it *)
+let handle_maritime c pl : move =
+	let high_res = highest_resource c pl in
+	let low_res = lowest_resource c pl in
+	Action ( MaritimeTrade (high_res, low_res) )
 
 
 (*===============DISCARD================*)

@@ -3,32 +3,21 @@ open Registry
 open Constant
 open Util
 open Structures
+open Bot_general
 
-
-
-(* the odds of rolling n. Returns the numerator of the probability (denominator is 36 *)
-let odds_of_roll n =
-	match n with
-	| 2 | 12 -> 1
-	| 3 | 11 -> 2
-	| 4 | 10 -> 3
-	| 5 | 9 -> 4
-	| 6 | 8 -> 5
-	| 7 -> 6
-	| _ -> 0
 
 (* the simple worth of placing a settlement at a given point pt.
    the sum of the odds of adjacent hexes *)
-let worth_of pt (hexl, _) : int =
+let pt_worth pt (hexl, _) : int =
 	let adj_hexes = List.map (fun x -> List.nth hexl x) (adjacent_pieces pt) in 
-	List.fold_left (fun worth (_,roll) -> worth + odds_of_roll roll ) 0 adj_hexes
+	List.fold_left (fun worth hex -> worth + odds_of_roll (roll_of hex) ) 0 adj_hexes
 
 (* compares the simple worth of points 1 and 2. *)
 let compare_worth map pt1 pt2 : int =
-	let w1 = worth_of pt1 map in
-	let w2 = worth_of pt2 map in
-	if w1 > w2 then 1
-	else if w1 < w2 then ~-1
+	let w1 = pt_worth pt1 map in
+	let w2 = pt_worth pt2 map in
+	if w1 < w2 then 1
+	else if w1 > w2 then ~-1
 	else 0
 
  (* from a list of points, sorts them in order of simple worth *)
@@ -48,3 +37,9 @@ let best_build_town_now c b : int option =
 	match best_pts pts map with
 	| [] -> None
 	| h::t -> Some(h)
+
+
+
+
+let best_build_city_now c b : int option =
+	failwith ""

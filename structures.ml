@@ -11,6 +11,10 @@ let indexed (l : 'a list) : (int * 'a) list =
 	indexed
 
 
+(*===========HEXES===============*)
+
+let roll_of (t,r) : roll = r
+
 
 (*==================ROADS======================*)
 
@@ -36,13 +40,16 @@ let all_possible_roads (roadl : road list) (c : color) : road list =
 		| _ -> acc in 
 	helper roadl []
 
-(* a list of all existing points, 0 to cMAX_POINT_NUM 
-   For iterating over *)
+(* creates an int list counting from 0 to n, inclusive *)
+let rec nlist n acc : int list =
+	if n = 0 then acc
+	else nlist (n-1) (n :: acc)
+(* a list of all existing points. For iterating over *)
 let all_pts : int list =
-	let rec nlist n acc : int list =
-		if n = 0 then acc
-		else nlist (n-1) (n :: acc) in
 	nlist cMAX_POINT_NUM []
+let all_pieces : int list = 
+	nlist cMAX_PIECE_NUM []
+
 
 (* a list of points that are occupied by roads of color c *)
 let road_pts_of c rl =
@@ -70,15 +77,14 @@ let num_cities_of c il : int =
 let num_towns_total pl il : int =
 	List.fold_left (fun nacc p -> (num_towns_of (color_of p) il) + nacc) 0 pl
 
+(* points at which c has a town *)
+let town_pts_of c il : int list =
+	let indexed_intersections = indexed il in
+	List.fold_left ( fun towns (n, i) ->
+		match i with
+		| Some(color,Town) when color = c -> n::towns 
+		| _ -> towns ) [] indexed_intersections
 
-(* list of colors next to a given piece, according to intersection list il *)
-let colors_near (pc : piece) (il : intersection list) : color list =
-	let adj = piece_corners pc in 
-	List.fold_left (fun clist pt -> 
-		match List.nth il pt with
-		| Some(c,settle) -> c::clist
-		| None -> clist )
-		[] adj
 
 
 (*================MAP INFORMATION===============*)
@@ -102,6 +108,15 @@ let all_available_pts il : int list =
 	match List.nth il pt with
 	| None when (area_free pt il) -> pt::available 
 	| _ -> available ) [] all_pts
+
+(* list of colors next to a given piece, according to intersection list il *)
+let colors_near (pc : piece) (il : intersection list) : color list =
+	let adj = piece_corners pc in 
+	List.fold_left (fun clist pt -> 
+		match List.nth il pt with
+		| Some(c,settle) -> c::clist
+		| None -> clist )
+		[] adj
 
 
 (*=====================VALIDATING FOR BUILDING=================*)

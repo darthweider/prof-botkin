@@ -53,7 +53,7 @@ module Bot = functor (S : Soul) -> struct
 
     (*================Decisions=================*)
     let target_pt = best_available_pts_on_map b in
-    let roadpath = (try (roadlist_to (get_some target_pt) cm pl rl il)
+    let roadpath = (try (roadlist_to (List.hd target_pt) cm pl rl il)
                     with _ -> []) in
     (*==========================================*)
 

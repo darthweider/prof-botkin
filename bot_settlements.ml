@@ -13,7 +13,8 @@ let pt_worth pt b : int =
 	let adj_hexes = List.map (fun x -> List.nth hexl x) (adjacent_pieces pt) in 
 	List.fold_left (fun worth hex -> worth + odds_of_roll (roll_of hex) ) 0 adj_hexes
 
-(*(* compares the simple worth of points 1 and 2. *)
+(* DEPRACATED 
+(* compares the simple worth of points 1 and 2. *)
 let compare_worth b pt1 pt2 : int =
 	let w1 = pt_worth pt1 b in
 	let w2 = pt_worth pt2 b in
@@ -39,11 +40,11 @@ let best_build_town_now c b : int option =
 	| [] -> None
 	| h::t -> Some(h)
 
-
 (* best place to build a city for color c, based on simple worth of its towns *)
 let best_build_city_now c b : int option =
 	let il = il_of b in
-	let l = List.filter ( fun pt -> List.mem pt (town_pts_of c il) ) (best_pts all_pts b) in
+	let towns = town_pts_of c il in
+	let l = List.filter ( fun pt -> List.mem pt towns ) (best_pts all_pts b) in
 	match l with
 	| [] -> None
 	| h::t -> Some(h)

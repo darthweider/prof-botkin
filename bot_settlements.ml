@@ -48,3 +48,14 @@ let best_build_city_now c b : int option =
 	match l with
 	| [] -> None
 	| h::t -> Some(h)
+
+
+
+(*===========INITIALIZING============*)
+  let rec handle_initial cm b : move =
+    let tentative_ln = 
+      match best_available_pts_on_map b with
+      | best1::t -> (best1, random_adj_pt best1)
+      | [] -> random_line in
+    if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
+    else handle_initial cm b

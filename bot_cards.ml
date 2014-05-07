@@ -5,8 +5,7 @@ open Util
 open Structures
 open Roadbfs
 open Bot_settlements
-open Bot_robber
-open Bot_discard
+open Bot_resources
 open Player
 open Robber
 

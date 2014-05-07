@@ -5,8 +5,7 @@ open Util
 open Structures
 open Roadbfs
 open Bot_settlements
-open Bot_robber
-open Bot_discard
+open Bot_resources
 open Player
 open Robber
 open Bot_cards
@@ -48,6 +47,11 @@ module Bot = functor (S : Soul) -> struct
       | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
       | [] -> random_rob cm b
 
+let handle_trade active pendingtrade il pl =
+  match pendingtrade with
+  | Some(c,cost1,cost2) when okay_trade active c cost1 cost2 il pl -> TradeResponse(true)
+  | _ -> TradeResponse(false)
+
   let handle_road_building cm b roadpath : move = 
     match roadpath with 
       | hd::tl -> begin
@@ -70,7 +74,7 @@ module Bot = functor (S : Soul) -> struct
   let handle_request (g : state) : move =
     let b,pl,t,(cm,r) = g in
     (*(hlist, plist), (il, rl), dk, dis, rob*)
-    let (_, _), (il, rl), _, _, _ = b in
+    let (hl, portl), (il, rl), _, _, _ = b in
 
     (*================Decisions=================*)
     let target_pt = best_available_pts_on_map b in
@@ -83,7 +87,7 @@ module Bot = functor (S : Soul) -> struct
       | InitialRequest -> handle_initial cm b
       | RobberRequest -> handle_robber cm b pl
       | DiscardRequest-> DiscardMove(discard_half cm pl)
-      | TradeRequest -> TradeResponse(true)
+      | TradeRequest -> handle_trade t.active t.pendingtrade il pl
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 
                       && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath

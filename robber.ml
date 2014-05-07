@@ -14,14 +14,14 @@ let valid_rob (pc,copt) b =
 	if pc = rob then false
 	else 
 		match copt with
-		| None when colors_near pc il = []            -> true
-		| Some(c) when List.mem c (colors_near pc il) -> true
-		| _                                           -> false
+		| None when colors_near pc il = []                 -> true
+		| Some(c) when List.mem c (colors_near pc il)      -> true
+		| _                                                -> false
 
 let rec random_rob c b : move =
 	let _,(il,_),_,_,rob = b in
 	let ran_pc = Random.int cMAX_PIECE_NUM in
 	let ran_col = pick_random (colors_near ran_pc il) in
 	match ran_col with
-	| Some(col) when col != c && ran_pc != rob -> RobberMove(ran_pc, ran_col)
+	| Some(col) when col <> c && ran_pc <> rob -> RobberMove(ran_pc, ran_col)
 	| _ -> random_rob c b

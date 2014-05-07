@@ -170,7 +170,7 @@ let valid_dom_trade (pinit :color) (ptarget:color) (ocost :cost ) (icost : cost)
 
 let rec next_to_discard (cm : color) (pl : player list) (t' : turn) (b: board) : state =
 	let pnext = next_turn cm in
-	if (sum_cost (inv_of (player pnext pl)))  > 7 then (b, pl, t', ((pnext), DiscardRequest))
+	if (sum_cost (inv_of (player pnext pl)))  > cMAX_HAND_SIZE then (b, pl, t', ((pnext), DiscardRequest))
 	else begin
 		if pnext = t'.active then (b, pl, t', ((pnext), RobberRequest))
 		else next_to_discard pnext pl t' b
@@ -202,7 +202,7 @@ let best_trade_rate (port_list : (int * portresource) list) (res : resource) : i
 		| (r, Any)::tl -> helper tl (min r best_rate)
 		| (r, PortResource(rs))::tl -> if rs = res then helper tl (min r best_rate)
 									   else helper tl best_rate in
-	helper port_list 4
+	helper port_list cMARITIME_DEFAULT_RATIO
 
 let valid_mari_trade (c : color) (pl : player list) (il : intersection list) (plist : port list) (res : resource) : bool = 
 	let ports = get_ports c il plist in

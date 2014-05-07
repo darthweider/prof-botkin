@@ -30,20 +30,6 @@ module Bot = functor (S : Soul) -> struct
   (* keep array of opponents' resources *)
 
 
-  let rec handle_initial cm b : move =
-    let tentative_ln = 
-      match best_available_pts_on_map b with
-      | best1::t -> (best1, random_adj_pt best1)
-      | [] -> random_line in
-    if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
-    else handle_initial cm b
-
-
-
-let handle_trade active pendingtrade il pl =
-  match pendingtrade with
-  | Some(c,cost1,cost2) when okay_trade active c cost1 cost2 il pl -> TradeResponse(true)
-  | _ -> TradeResponse(false)
 
   let handle_road_building cm b roadpath : move = 
     match roadpath with 

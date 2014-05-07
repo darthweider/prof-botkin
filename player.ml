@@ -71,7 +71,7 @@ let random_resource () : resource =
 
 (* from an inventory inv, choose n random resources and return the cost of all those resources *)
 let n_random_resources inv n : cost =
-	if sum_cost (inv_of p) = 0 then empty_cost
+	if sum_cost inv = 0 then empty_cost
 	else let rec helper inv n chosen : cost =
 		if n = 0 then chosen
 		else

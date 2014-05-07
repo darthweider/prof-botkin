@@ -27,11 +27,11 @@ let rec make_valid (m : move) (g : game) : move =
 
 	match rq, m with
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
-	| InitialRequest, _                                             ->  random_initialmove cm b
+	| InitialRequest, _                                             ->  failwith "bad initial"(*random_initialmove cm b*)
 	| RobberRequest, RobberMove(rob)   when valid_rob rob b         ->  m 
-	| RobberRequest, _                                              ->  random_rob cm b
+	| RobberRequest, _                                              ->  failwith "bad robber"(*random_rob cm b*)
 	| DiscardRequest, DiscardMove(dis) when valid_discard cm dis pl ->  m
-	| DiscardRequest, _                                             ->  random_discard (inv_of (player cm pl))
+	| DiscardRequest, _                                             ->  failwith "bad discard"(*random_discard (inv_of (player cm pl))*)
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
 	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
@@ -48,6 +48,7 @@ let rec make_valid (m : move) (g : game) : move =
 	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl il cCOST_ROAD   -> m
 		(* and player can pay cost_of_build *)
 	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt pl rl il              -> m
+	| ActionRequest, Action (BuyBuild(BuildTown(pt)))                                                   -> print_string "\n"; print_int pt; print_string "\n"; failwith "can't build there"
 		(* and player can pay *)
 	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt pl il                 -> m
 		(* and player can pay *)

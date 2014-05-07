@@ -73,7 +73,8 @@ module Bot = functor (S : Soul) -> struct
       | TradeRequest                                                         -> handle_trade t.active t.pendingtrade il pl
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 
-                      && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath rl 
+                      && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER
+                      && not t.cardplayed                                    -> handle_road_building cm b roadpath rl 
       | ActionRequest when is_none t.dicerolled                              -> Action(RollDice)
       | ActionRequest when not t.cardplayed && have_valid_card cm pl         -> handle_card cm pl b
       | ActionRequest when not (is_none (best_build_city_now cm b))

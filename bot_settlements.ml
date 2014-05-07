@@ -67,5 +67,5 @@ let handle_city c b =
 		with _ -> failwith "Incorrectly handled a city"
 
 let handle_town c b = 
-	try (Action(BuyBuild(BuildCity(get_some (best_build_town_now c b)))))
+	try (Action(BuyBuild(BuildTown(get_some (best_build_town_now c b)))))
 		with _ -> failwith "Incorrectly handled a town"

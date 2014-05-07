@@ -4,7 +4,21 @@ open Constant
 open Util
 open Structures
 open Player
+open Robber
 open Bot_general
+
+
+(* returns the resource that color c has the most of.
+   PRE: c has resources. *)
+let highest_resource c pl : resource =
+	let b,w,o,g,l = inv_of (player c pl) in
+	let sorted_costs = List.rev (List.sort (compare) (b::w::o::g::[l])) in
+	let highest = List.hd sorted_costs in
+	     if highest = b then Brick
+	else if highest = w then Wool
+	else if highest = o then Ore
+	else if highest = g then Grain
+	else                     Lumber
 
 
 (*================ROBBER==================*)
@@ -15,7 +29,7 @@ let pc_worth pc hl : int =
 
 (* given a piece and a color, return if there are opponent colors on the piece *)
 let opponents_on pc c il : bool =
-	List.exists (fun x -> x != c) (colors_near pc il)
+	List.exists (fun x -> x <> c) (colors_near pc il)
 (* return if color c is on the piece pc *)
 let color_on pc c il : bool =
 	List.mem c (colors_near pc il)
@@ -32,7 +46,7 @@ let not_us_pieces c pieces il : piece list =
    does not include pieces that have the robber on them now *)
 let best_rob_pieces1 c b : piece list =
 	let (hl,_),(il,_),_,_,robbernow = b in
-	List.filter (fun x -> x != robbernow)
+	List.filter (fun x -> x <> robbernow)
 			(sort_by (fun piece -> pc_worth piece hl) (opp_pieces c all_pieces il))
 (* best pieces to place robber on, not including pieces that color c is on.
    a list of pieces that have opponents on them BUT NOT color c, SORTED by the worth of the piece 
@@ -58,9 +72,17 @@ let best_steal_from pc c il pl : color option =
 	most_resources_excluding c steal_list
 
 
+  let handle_robber cm b pl : move =
+    let il = il_of b in
+    match best_rob_pieces2 cm b with
+    | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+    | [] ->
+      match best_rob_pieces1 cm b with
+      | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+      | [] -> random_rob cm b
 
 
-(*==============TRADING================*)
+(*==============TRADE RESPONSE================*)
 
 (* a trade in which player1 gives player2 cost1 for cost2 resources is favorable
    for player 2 when the total number of resources player 2 receives is greater than
@@ -90,20 +112,18 @@ let okay_trade active c cost1 cost2 il pl =
 	(vp_estimate active il pl) < (cWIN_CONDITION - 1)
 
 
+(*===================MARITIME TRADE==============*)
+(*
+(* returns if color c will have at least two leftover of a resource after paying n of it *)
+let resources_leftover n res c pl =
+	let min_cost = n_resource_cost res (n+2) in
+	can_pay (player c pl) min_cost
+
+*)
+
+
 
 (*===============DISCARD================*)
-
-(* returns the resource that color c has the most of.
-   PRE: c has resources. *)
-let highest_resource c pl : resource =
-	let b,w,o,g,l = inv_of (player c pl) in
-	let sorted_costs = List.rev (List.sort (compare) (b::w::o::g::[l])) in
-	let highest = List.hd sorted_costs in
-	     if highest = b then Brick
-	else if highest = w then Wool
-	else if highest = o then Ore
-	else if highest = g then Grain
-	else                     Lumber
 
 (* cost of discarding n resources from inventory, based on the resources that are 
    most abundant in inv *)

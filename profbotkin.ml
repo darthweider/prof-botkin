@@ -62,11 +62,23 @@ module Bot = functor (S : Soul) -> struct
     | Some(_) -> false
     | _ -> true
 
-  let have_valid_card (cm:color) pl = 
-    let vd_cards = [Knight; RoadBuilding; YearOfPlenty; Monopoly] in
+    (*Verifies that we have a playable card in our hand*)
+  let have_valid_card (cm:color) pl  : bool= 
+    (*List of playable cards*)
     let p = player cm pl in
+    let vd_cards = [Knight; RoadBuilding; YearOfPlenty; Monopoly] in
+    let rs_list = [Brick; Wool; Ore; Grain; Lumber] in
+    let valid_monop = List.exists (fun res -> can_pay p (single_resource_cost res)) rs_list in
     let hnd = reveal (cards_of p) in
-    List.exists (fun cd -> fst(have_card_of cd hnd)) vd_cards
+    (*If the card is a monopoly, verify we have at least one resource*)
+    List.exists (fun cd -> fst(have_card_of cd hnd) && (if cd = Monopoly then valid_monop else true)) vd_cards
+
+  (*let select_valid_card (cm : color ) (pl : player list) = 
+    let vd_cards = [Monopoly; YearOfPlenty; Knight] in
+    let p = player cm pl in
+    let hdn = reveal (cards of p) in
+    () *)
+
 
   (* Invalid moves are overridden in game *)
   let handle_request (g : state) : move =
@@ -84,7 +96,7 @@ module Bot = functor (S : Soul) -> struct
     match r with
       | InitialRequest -> handle_initial cm b
       | RobberRequest -> handle_robber cm b pl
-      | DiscardRequest-> discard_half cm pl
+      | DiscardRequest-> DiscardMove(discard_half cm pl)
       | TradeRequest -> TradeResponse(true)
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 

@@ -112,7 +112,8 @@ let rm_from_inv expense c pl : player list =
 (* if the number of resources in dis is the floor of half the resources that color c owns 
    AND the number of resources originally owned by c is greater than 7 *)
 let valid_discard c dis pl : bool =
-	(sum_cost (inv_of (player c pl)))  > 7 && sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
+	let p = player c pl in
+	(sum_cost (inv_of (player c pl)))  > 7 && sum_cost dis = (sum_cost (inv_of (player c pl))) / 2 && can_pay p dis
 
 
 (* returns a random discard move that will discard random resources 
@@ -207,7 +208,7 @@ let valid_mari_trade (c : color) (pl : player list) (il : intersection list) (pl
 
 
 
-let valid_build_card (c: color) (pl : player list) (d: deck) =
+let valid_build_card (c: color) (pl : player list) (d: deck) : bool =
 	(*Verify that player has enough resources
 	  Verify that the deck is not empty*)
 	let p = player c pl in

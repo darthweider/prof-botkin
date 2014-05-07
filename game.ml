@@ -101,6 +101,8 @@ let handle_move g m =
 		| DiscardMove (ns)-> begin
 			(*Discard, then check if any other players must discard. If not, have the inital player move the robber*)
 			let pl' = rm_from_inv ns cm pl in
+			if cm = t.active then (b, pl', t, ((cm), RobberRequest))
+		    else
 			next_to_discard cm pl' t b
 		end
 

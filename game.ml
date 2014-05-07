@@ -35,7 +35,8 @@ let rec make_valid (m : move) (g : game) : move =
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
 	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
-	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, rd2))) when not t.cardplayed       ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, Some(rd2)))) when not t.cardplayed && (List.length rl) < cMAX_ROADS_PER_PLAYER ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, None))) when not t.cardplayed && (List.length rl) < cMAX_ROADS_PER_PLAYER - 1 ->  m
 	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed     ->  m
 	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl res)               ->  m
 	| ActionRequest, _ when is_none t.dicerolled                                              ->  Action(RollDice)
@@ -182,6 +183,7 @@ let handle_move g m =
 			let pl' = rm_from_inv cCOST_ROAD c pl in
 			(*Place road*)
 			let rl' = add_road (c,lin) rl in
+			let pl' = update_longest_road c rl' il pl' in
 			let b' = (hexl, portl), (il, rl'), dk, dis, rob in
 			(b', pl', t, (cm, ActionRequest))
 
@@ -249,10 +251,31 @@ let handle_move g m =
 				end in
 			let pl'' = update cm pl'' (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn+1, t1, t2))) in
 			(*Update largest army*)
+			let pl'' = update_largest_army cm pl'' in
 			let n' = cm, ActionRequest in
 			(b', pl'', t', n')
 
-		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) -> failwith "fire of my loins"
+		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of RoadBuilding h in
+			(*add the card to discard*)
+			let dis' = RoadBuilding::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add the roads*)
+			let rl' = rd2::rd1::rl in
+			let pl' = update_longest_road cm rl' il pl' in
+			let b' = (hexl, portl), (il, rl'), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+
 		| Action (PlayCard(PlayRoadBuilding(rd1, None))) -> failwith "fire of my loins"		
 		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) -> failwith "fire of my loins"
 		| Action (PlayCard(PlayYearOfPlenty(rsc1, None))) -> failwith "fire of my loins"

@@ -3,6 +3,7 @@ open Constant
 open Util
 open Print
 open Printf
+open Structures
 
 (* placing the robber on piece pc is a valid move on board b *)
 (* robber is not currently at the piece indicated.

@@ -80,13 +80,11 @@ module Bot = functor (S : Soul) -> struct
       | RobberRequest -> RobberMove(0, None)
       | DiscardRequest-> DiscardMove(0,0,0,0,0)
       | TradeRequest -> TradeResponse(true)
-      | ActionRequest -> 
-        if is_none t.dicerolled then Action(RollDice) else begin
-          match !build_road , !build_town with
+      | ActionRequest when is_none t.dicerolled -> Action(RollDice)
+      | ActionRequest -> match !build_road , !build_town with
           | true , _ when valid_build_road c pl (c, (rd_start, rd_end)) rl il cCOST_ROAD-> build_road:=false; (print_string ("Trying to build a road from" ^(string_of_int rd_start)^ " to " ^ (string_of_int (rd_end)))); Action(BuyBuild(BuildRoad(c, (rd_start, rd_end))))
           | _, true  when valid_build_town c town_pt pl rl il->  build_town:=false; print_string ("Tring to build town at" ^ (string_of_int town_pt)); Action(BuyBuild(BuildTown(town_pt)))
           | _ -> turn_count:= !turn_count+1; Action(EndTurn)
-        end 
 
 
 end

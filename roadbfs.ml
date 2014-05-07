@@ -56,10 +56,10 @@ let rec shortest_path_to (target : point) (c : color) (pl : player list) (fronti
         | _ -> []
     end 
 
-    (*Given a target point, finds the next best road to get there. Returns None if impossible.
-    	NOTE: Will return another path to reach target if we already have a road touching target*)
-let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road option=
-    let myroads = roads_of c rl in
+
+
+let roadlist_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road list =
+	let myroads = roads_of c rl in
     (*Generate the list of all shortest paths from any point this player owns to target*)
     let paths= if List.length myroads = 0 then []
         else List.fold_left (fun acc (_, (pt1, pt2)) -> 
@@ -72,9 +72,12 @@ let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il 
     let ((_,chosenPathInd),_) = if List.length paths = 0 then ((0, -1), -1)
                                 else List.fold_left (fun ((minpath, pathindex), index) x -> if x <=minpath && x <> 0 then ((x, index), index+1) 
                                         else ((minpath, pathindex), index+1)) ((cNUM_POINTS, -1),0) pathlengths in
-    let chosenpath = if chosenPathInd = -1 then [] else List.nth paths chosenPathInd in
+    if chosenPathInd = -1 then [] else List.nth paths chosenPathInd
 
-   	match chosenpath with
+    (*Given a target point, finds the next best road to get there. Returns None if impossible.
+    	NOTE: Will return another path to reach target if we already have a road touching target*)
+let road_to (target : point) (c: color) (pl : player list) (rl : road list) (il : intersection list) : road option=
+   	match roadlist_to target c pl rl il with
       | (c, (s, e))::tl -> Some(c, (e,s))
       | [] -> print_string "No Path"; None
 

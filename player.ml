@@ -23,6 +23,8 @@ let player (c : color) (pl : player list) : player =
 
 (*==============================COST/RESOURCE CALCULATIONS====================================*)
 
+let empty_cost = (0,0,0,0,0)
+
 (* subtraction of cost2 from cost1. The return value can be negative *)
 let diff_cost cost1 cost2 : cost =
 map_cost2 (fun a b -> 
@@ -34,6 +36,7 @@ map_cost2 (fun a b ->
 		if diff > 0 then diff
 		else failwith "cannot have a negative cost") cost1 cost2 *)
 
+(* addition of two costs *)
 let add_cost cost1 cost2 : cost =
 	map_cost2 (fun a b -> a+b) cost1 cost2	
 
@@ -53,8 +56,6 @@ let n_resource_cost resource n : cost =
     | Ore ->    (0,0,n,0,0)
     | Grain ->  (0,0,0,n,0)
     | Lumber -> (0,0,0,0,n)
-
-let empty_cost = (0,0,0,0,0)
 
 let random_resource () : resource =
 	match Random.int 5 with
@@ -108,7 +109,8 @@ let rm_from_inv expense c pl : player list =
 		(c, (inv', cards_of p), trophs_of p))
 
 
-(* if the number of resources in dis is the floor of half the resources that color c owns AND the number of resources is greater than 7*)
+(* if the number of resources in dis is the floor of half the resources that color c owns 
+   AND the number of resources originally owned by c is greater than 7 *)
 let valid_discard c dis pl : bool =
 	(sum_cost (inv_of (player c pl)))  > 7 && sum_cost dis = (sum_cost (inv_of (player c pl))) / 2
 

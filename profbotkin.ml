@@ -6,6 +6,7 @@ open Structures
 open Roadbfs
 open Bot_settlements
 open Bot_robber
+open Bot_discard
 open Player
 open Robber
 
@@ -37,14 +38,14 @@ module Bot = functor (S : Soul) -> struct
     if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
     else handle_initial cm b
 
-let handle_robber cm b pl : move =
-  let il = il_of b in
-  match best_rob_pieces2 cm b with
-  | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-  | [] ->
-    match best_rob_pieces1 cm b with
+  let handle_robber cm b pl : move =
+    let il = il_of b in
+    match best_rob_pieces2 cm b with
     | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-    | [] -> random_rob cm b
+    | [] ->
+      match best_rob_pieces1 cm b with
+      | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+      | [] -> random_rob cm b
 
   let handle_road_building cm b roadpath : move = 
     match roadpath with 
@@ -83,7 +84,7 @@ let handle_robber cm b pl : move =
     match r with
       | InitialRequest -> handle_initial cm b
       | RobberRequest -> handle_robber cm b pl
-      | DiscardRequest-> DiscardMove(0,0,0,0,0)
+      | DiscardRequest-> discard_half cm pl
       | TradeRequest -> TradeResponse(true)
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 

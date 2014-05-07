@@ -276,10 +276,99 @@ let handle_move g m =
 			let n' = cm, ActionRequest in
 			(b', pl',  t', n')
 
-		| Action (PlayCard(PlayRoadBuilding(rd1, None))) -> failwith "fire of my loins"		
-		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) -> failwith "fire of my loins"
-		| Action (PlayCard(PlayYearOfPlenty(rsc1, None))) -> failwith "fire of my loins"
-		| Action (PlayCard(PlayMonopoly(rsc))) -> failwith "fire of my loins"
+		| Action (PlayCard(PlayRoadBuilding(rd1, None))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of RoadBuilding h in
+			(*add the card to discard*)
+			let dis' = RoadBuilding::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add the roads*)
+			let rl' = rd1::rl in
+			let pl' = update_longest_road cm rl' il pl' in
+			let b' = (hexl, portl), (il, rl'), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')	
+
+		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of YearOfPlenty h in
+			(*add the card to discard*)
+			let dis' = YearOfPlenty::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add resource 1*)
+			let pl' = add_to_inv (single_resource_cost rsc1) cm pl' in
+			(*Add resource 2*)
+			let pl' = add_to_inv (single_resource_cost rsc2) cm pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+		| Action (PlayCard(PlayYearOfPlenty(rsc1, None))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of YearOfPlenty h in
+			(*add the card to discard*)
+			let dis' = YearOfPlenty::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add resource 1*)
+			let pl' = add_to_inv (single_resource_cost rsc1) cm pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+		| Action (PlayCard(PlayMonopoly(rsc))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of Monopoly h in
+			(*add the card to discard*)
+			let dis' = Monopoly::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Get and remove resources*)
+			let rec helper (acc : player list) (plist : player list) : player list =
+				match plist with
+				| p1::tl -> begin
+					let playerc = color_of p1 in
+					if playerc = cm then helper acc tl
+				    else 
+				    let p1_inv = inv_of p1 in
+				    let fee = n_resource_cost rsc (num_resource_in_inventory p1_inv rsc) in
+				    let acc = rm_from_inv fee playerc acc in
+				    let acc = add_to_inv fee cm acc in
+				    helper acc tl
+				end
+				| [] -> acc in
+			let pl' = helper pl' pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
 		| Action (EndTurn) ->
 			(* distribute cards that have been bought *)
 			let pl' = add_cards t.cardsbought t.active pl in

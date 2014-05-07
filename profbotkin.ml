@@ -44,6 +44,17 @@ module Bot = functor (S : Soul) -> struct
       end
       | [] -> Action(RollDice)
 
+  (*Can we build a town given our current set of roads? If so, build NO MORE roads*)
+  let build_more_roads cm b : bool =
+    match best_build_town_now cm b with
+    | Some(_) -> false
+    | _ -> true
+
+  let have_valid_card (cm:color) pl = 
+    let vd_cards = [Knight; RoadBuilding; YearOfPlenty; Monopoly] in
+    let p = player cm pl in
+    let hnd = reveal (cards_of p) in
+    List.exists (fun cd -> fst(have_card_of cd hnd)) vd_cards
 
   (* Invalid moves are overridden in game *)
   let handle_request (g : state) : move =
@@ -67,6 +78,7 @@ module Bot = functor (S : Soul) -> struct
                       && valid_play_card RoadBuilding cm pl 
                       && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath
       | ActionRequest when is_none t.dicerolled -> Action(RollDice)
+      | ActionRequest when not t.cardplayed && have_valid_card cm pl-> Action(EndTurn)
       | _ -> Action(EndTurn)
 end
 

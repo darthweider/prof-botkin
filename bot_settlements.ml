@@ -35,8 +35,10 @@ let best_available_pts_on_map b : int list =
    Returns none if there is nowhere for c to build a town at right now. *)
 let best_build_town_now c b : int option =
 	let rl = rl_of b in
+	let il = il_of b in
 	let pts = road_pts_of c rl in
-	match best_pts pts b with
+	let bst = List.filter (fun pt -> area_free pt il) pts in
+	match bst with
 	| [] -> None
 	| h::t -> Some(h)
 
@@ -59,3 +61,11 @@ let best_build_city_now c b : int option =
       | [] -> random_line in
     if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
     else handle_initial cm b
+
+let handle_city c b = 
+	try (Action(BuyBuild(BuildCity(get_some (best_build_city_now c b)))))
+		with _ -> failwith "Incorrectly handled a city"
+
+let handle_town c b = 
+	try (Action(BuyBuild(BuildCity(get_some (best_build_town_now c b)))))
+		with _ -> failwith "Incorrectly handled a town"

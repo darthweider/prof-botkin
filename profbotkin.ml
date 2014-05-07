@@ -9,9 +9,10 @@ open Bot_resources
 open Player
 open Robber
 open Bot_cards
+open Print
 
 (** Give your bot a 2-20 character name. *)
-let name = "ProfBotkin"
+let name = "profbotkin"
 
 
 module Bot = functor (S : Soul) -> struct
@@ -42,11 +43,7 @@ module Bot = functor (S : Soul) -> struct
       end
       | [] -> Action(RollDice)
 
-  (*Can we build a town given our current set of roads? If so, build NO MORE roads*)
-  let build_more_roads cm b : bool =
-    match best_build_town_now cm b with
-    | Some(_) -> false
-    | _ -> true
+
 
 
 
@@ -56,25 +53,43 @@ module Bot = functor (S : Soul) -> struct
     let b,pl,t,(cm,r) = g in
     (*(hlist, plist), (il, rl), dk, dis, rob*)
     let (hl, portl), (il, rl), _, _, _ = b in
-
+    let ourplayer = player cm pl in
     (*================Decisions=================*)
     let target_pt = best_available_pts_on_map b in
     let roadpath = (try (roadlist_to (List.hd target_pt) cm pl rl il)
                     with _ -> []) in
     (*==========================================*)
-
-
+    (*DEBUGGING*)
+    print_string ((string_of_color cm) ^ "\n");
+    print_string (string_of_list (fun (_,(pt1, pt2)) -> "Road : " ^ (string_of_int pt1) ^ " to " ^ (string_of_int pt2) ^ "\n") roadpath);
+    print_string (if can_pay ourplayer cCOST_ROAD then "\n Can Pay \n" else "\n Out of Cash \n");
+    print_int (if is_none (best_build_town_now cm b) then 12321 else get_some (best_build_town_now cm b));
+    
+    (*==========================================*)
     match r with
-      | InitialRequest -> handle_initial cm b
-      | RobberRequest -> handle_robber cm b pl
-      | DiscardRequest-> DiscardMove(discard_half cm pl)
-      | TradeRequest -> handle_trade t.active t.pendingtrade il pl
+      | InitialRequest                                                       -> handle_initial cm b
+      | RobberRequest                                                        -> handle_robber cm b pl
+      | DiscardRequest                                                       -> DiscardMove(discard_half cm pl)
+      | TradeRequest                                                         -> handle_trade t.active t.pendingtrade il pl
       | ActionRequest when is_none t.dicerolled 
                       && valid_play_card RoadBuilding cm pl 
                       && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath rl 
-      | ActionRequest when is_none t.dicerolled -> Action(RollDice)
-      | ActionRequest when not t.cardplayed && have_valid_card cm pl-> handle_card cm pl b
-      | _ -> Action(EndTurn) 
+      | ActionRequest when is_none t.dicerolled                              -> Action(RollDice)
+      | ActionRequest when not t.cardplayed && have_valid_card cm pl         -> handle_card cm pl b
+      | ActionRequest when not (is_none (best_build_city_now cm b))
+                      && can_pay ourplayer cCOST_CITY
+                      && num_cities_of cm il < cMAX_CITIES_PER_PLAYER        -> handle_city cm b
+      | ActionRequest when not (is_none (best_build_town_now cm b))
+                      && can_pay ourplayer cCOST_TOWN
+                      && num_towns_of cm il < cMAX_TOWNS_PER_PLAYER          -> handle_town cm b
+      | ActionRequest when (is_none (best_build_town_now cm b))
+                      && can_pay ourplayer cCOST_ROAD
+                      && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER 
+                      && List.length roadpath > 0                            -> 
+                      print_string "Attempting to build a road \n";
+                      print_string (string_of_list (fun (_,(pt1, pt2)) -> "Road : " ^ (string_of_int pt1) ^ " to " ^ (string_of_int pt2) ^ "\n") [List.hd roadpath]);
+                      Action(BuyBuild(BuildRoad(List.hd roadpath)))
+      | _ -> (print_string "Actively ending my turn");Action(EndTurn) 
 end
 
 

@@ -79,7 +79,7 @@ let n_random_resources inv n : cost =
 			if num_resource_in_inventory inv ran_rsc > 0 then  
 				let c = single_resource_cost ran_rsc in
 				helper (diff_cost inv c) (n-1) (add_cost chosen c)
-			else let () = print_int n in
+			else let () = print_int n; print_string "n_random_resources" in
 			helper inv n chosen in
 	helper inv n (0,0,0,0,0)
 

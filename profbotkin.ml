@@ -38,14 +38,7 @@ module Bot = functor (S : Soul) -> struct
     if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
     else handle_initial cm b
 
-  let handle_robber cm b pl : move =
-    let il = il_of b in
-    match best_rob_pieces2 cm b with
-    | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-    | [] ->
-      match best_rob_pieces1 cm b with
-      | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
-      | [] -> random_rob cm b
+
 
 let handle_trade active pendingtrade il pl =
   match pendingtrade with

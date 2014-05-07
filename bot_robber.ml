@@ -37,13 +37,21 @@ let best_rob_pieces1 c b : piece list =
    a list of pieces that have opponents on them BUT NOT color c, SORTED by the worth of the piece 
    does not include pieces that have the robber on them now. *)
 let best_rob_pieces2 c b : piece list =
-	let (hl,_),(il,_),_,_,_ = b in
+	let il = il_of b in
 	not_us_pieces c (best_rob_pieces1 c b) il
 
 
-(*==========for robber. make sure to check to not steal from self *)
-(* choose the player with the most resources from playerlist pl *)
-let most_resources pl : color option =
+(* choose the player with the most resources from playerlist pl,
+   excluding the player with color c *)
+let rec most_resources_excluding c pl : color option =
 	match sort_by (fun player -> sum_cost (inv_of player) ) pl with
 	| [] -> None
+	| h::t when (color_of h = c) -> most_resources_excluding c t
 	| h::t -> Some (color_of h)
+
+(* choose the color that color c should steal from if the robber 
+   is placed at piece pc *)
+let best_steal_from pc c il pl : color option =
+	let colors = colors_near pc il in
+	let steal_list = List.map (fun color -> player color pl) colors in
+	most_resources_excluding c steal_list

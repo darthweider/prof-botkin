@@ -5,7 +5,9 @@ open Util
 open Structures
 open Roadbfs
 open Bot_settlements
+open Bot_robber
 open Player
+open Robber
 
 (** Give your bot a 2-20 character name. *)
 let name = "ProfBotkin"
@@ -34,6 +36,15 @@ module Bot = functor (S : Soul) -> struct
       | [] -> random_line in
     if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
     else handle_initial cm b
+
+let handle_robber cm b pl : move =
+  let il = il_of b in
+  match best_rob_pieces2 cm b with
+  | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+  | [] ->
+    match best_rob_pieces1 cm b with
+    | pc::t -> RobberMove(pc, (best_steal_from pc cm il pl) )
+    | [] -> random_rob cm b
 
   let handle_road_building cm b roadpath : move = 
     match roadpath with 
@@ -71,7 +82,7 @@ module Bot = functor (S : Soul) -> struct
 
     match r with
       | InitialRequest -> handle_initial cm b
-      | RobberRequest -> RobberMove(0, None)
+      | RobberRequest -> handle_robber cm b pl
       | DiscardRequest-> DiscardMove(0,0,0,0,0)
       | TradeRequest -> TradeResponse(true)
       | ActionRequest when is_none t.dicerolled 
@@ -79,7 +90,7 @@ module Bot = functor (S : Soul) -> struct
                       && List.length (roads_of cm rl) <cMAX_ROADS_PER_PLAYER -> handle_road_building cm b roadpath
       | ActionRequest when is_none t.dicerolled -> Action(RollDice)
       | ActionRequest when not t.cardplayed && have_valid_card cm pl-> Action(EndTurn)
-      | _ -> Action(EndTurn)
+      | _ -> Action(EndTurn) 
 end
 
 

@@ -29,7 +29,7 @@ let rec make_valid (m : move) (g : game) : move =
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
 	| InitialRequest, _                                             ->  random_initialmove cm b
 	| RobberRequest, RobberMove(rob)   when valid_rob rob b         ->  m 
-	| RobberRequest, _                                              ->  random_rob b
+	| RobberRequest, _                                              ->  random_rob cm b
 	| DiscardRequest, DiscardMove(dis) when valid_discard cm dis pl ->  m
 	| DiscardRequest, _                                             ->  random_discard (inv_of (player cm pl))
 	| TradeRequest, TradeResponse(_)                                ->  m

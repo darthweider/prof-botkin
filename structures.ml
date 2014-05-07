@@ -10,6 +10,55 @@ let indexed (l : 'a list) : (int * 'a) list =
 	let _, indexed = List.fold_left ( fun (ct,lacc) x -> ct+1, lacc @ [(ct, x)] ) (0, []) l in
 	indexed
 
+(* creates an int list counting from 0 to n, inclusive *)
+let rec nlist n acc : int list =
+	if n = 0 then acc
+	else nlist (n-1) (n :: acc)
+
+
+
+(*================BOARD INFORMATION===============*)
+let hl_of ((hl,_),_,_,_,_) : hex list = hl
+let il_of (_,(il,_),_,_,_) : intersection list = il
+let rl_of (_,(_,rl),_,_,_) : road list = rl
+
+
+let valid_point pt =
+	0 <= pt && pt <=cMAX_POINT_NUM
+
+let valid_pc pc = 
+	0 <= pc && pc <=cMAX_PIECE_NUM
+
+let valid_line (pt1,pt2) =
+	valid_point pt1 && valid_point pt2 && List.mem pt1 (adjacent_points pt2)
+
+(* there is no settlement on a given pt, or immediately adjacent to it *)
+let area_free pt il : bool =
+	let adj = adjacent_points pt in
+	List.for_all (fun x -> (List.nth il x) = None) (pt::adj)
+
+(* a list of all existing points. For iterating over *)
+let all_pts : int list =
+	nlist cMAX_POINT_NUM []
+let all_pieces : int list = 
+	nlist cMAX_PIECE_NUM []
+
+(* a list of all unoccupied points on the map whose areas are free *)
+let all_available_pts il : int list =
+	List.fold_left ( fun available pt -> 
+	match List.nth il pt with
+	| None when (area_free pt il) -> pt::available 
+	| _ -> available ) [] all_pts
+
+(* list of colors next to a given piece, according to intersection list il *)
+let colors_near (pc : piece) (il : intersection list) : color list =
+	let adj = piece_corners pc in 
+	List.fold_left (fun clist pt -> 
+		match List.nth il pt with
+		| Some(c,settle) -> c::clist
+		| None -> clist )
+		[] adj
+
 
 (*===========HEXES===============*)
 
@@ -39,16 +88,6 @@ let all_possible_roads (roadl : road list) (c : color) : road list =
 			helper tl (adjstart@adjend@acc)
 		| _ -> acc in 
 	helper roadl []
-
-(* creates an int list counting from 0 to n, inclusive *)
-let rec nlist n acc : int list =
-	if n = 0 then acc
-	else nlist (n-1) (n :: acc)
-(* a list of all existing points. For iterating over *)
-let all_pts : int list =
-	nlist cMAX_POINT_NUM []
-let all_pieces : int list = 
-	nlist cMAX_PIECE_NUM []
 
 
 (* a list of points that are occupied by roads of color c *)
@@ -85,38 +124,6 @@ let town_pts_of c il : int list =
 		| Some(color,Town) when color = c -> n::towns 
 		| _ -> towns ) [] indexed_intersections
 
-
-
-(*================MAP INFORMATION===============*)
-let valid_point pt =
-	0 <= pt && pt <=cMAX_POINT_NUM
-
-let valid_pc pc = 
-	0 <= pc && pc <=cMAX_PIECE_NUM
-
-let valid_line (pt1,pt2) =
-	valid_point pt1 && valid_point pt2 && List.mem pt1 (adjacent_points pt2)
-
-(* there is no settlement on a given pt, or immediately adjacent to it *)
-let area_free pt il : bool =
-	let adj = adjacent_points pt in
-	List.for_all (fun x -> (List.nth il x) = None) (pt::adj)
-
-(* a list of all unoccupied points on the map whose areas are free *)
-let all_available_pts il : int list =
-	List.fold_left ( fun available pt -> 
-	match List.nth il pt with
-	| None when (area_free pt il) -> pt::available 
-	| _ -> available ) [] all_pts
-
-(* list of colors next to a given piece, according to intersection list il *)
-let colors_near (pc : piece) (il : intersection list) : color list =
-	let adj = piece_corners pc in 
-	List.fold_left (fun clist pt -> 
-		match List.nth il pt with
-		| Some(c,settle) -> c::clist
-		| None -> clist )
-		[] adj
 
 
 (*=====================VALIDATING FOR BUILDING=================*)

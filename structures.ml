@@ -19,6 +19,7 @@ let rec nlist n acc : int list =
 
 (*================BOARD INFORMATION===============*)
 let hl_of ((hl,_),_,_,_,_) : hex list = hl
+let portl_of ((_,portl),_,_,_,_ ) : port list  = portl
 let il_of (_,(il,_),_,_,_) : intersection list = il
 let rl_of (_,(_,rl),_,_,_) : road list = rl
 

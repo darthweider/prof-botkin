@@ -8,10 +8,10 @@ open Robber
 open Bot_general
 
 
-(* returns the resource that color c has the most of.
-   PRE: c has resources. *)
-let highest_resource c pl : resource =
-	let b,w,o,g,l = inv_of (player c pl) in
+(* returns the highest resource in an inventory.
+   PRE: there are resources in inv. *)
+let highest_resource inv : resource =
+	let b,w,o,g,l = inv in
 	let sorted_costs = List.rev (List.sort (compare) (b::w::o::g::[l])) in
 	let highest = List.hd sorted_costs in
 	     if highest = w then Wool
@@ -20,8 +20,8 @@ let highest_resource c pl : resource =
 	else if highest = l then Lumber
 	else                     Brick
 
-let lowest_resource c pl : resource =
-	let b,w,o,g,l = inv_of (player c pl) in
+let lowest_resource inv : resource =
+	let b,w,o,g,l = inv in
 	let sorted_costs = List.sort (compare) (b::w::o::g::[l]) in
 	let lowest = List.hd sorted_costs in
 	     if lowest = b then Brick
@@ -136,28 +136,32 @@ let resources_leftover n res c pl : bool =
 
 (* if a maritime trade should be conducted *)
 let should_maritime c pl b : bool =
+	let inv = inv_of (player c pl) in
 	let ports = get_ports c (il_of b) (portl_of b) in
-	let high_res = highest_resource c pl in
+
+	let high_res = highest_resource inv in
 	let rate = best_trade_rate ports high_res in
 	resources_leftover rate high_res c pl
 
 (* conducts a maritime trade 
    PRE the maritime trade is valid: color c can pay it *)
 let handle_maritime c pl : move =
-	let high_res = highest_resource c pl in
-	let low_res = lowest_resource c pl in
+	let inv = inv_of (player c pl) in
+
+	let high_res = highest_resource inv in
+	let low_res = lowest_resource inv in
 	Action ( MaritimeTrade (high_res, low_res) )
 
 
 (*===============DISCARD================*)
 
-(* cost of discarding n resources from inventory, based on the resources that are 
-   most abundant in inv *)
-let discardn n inv c pl: cost =
+(* cost to discard from inv, when n resources need to be discarded, 
+   discards the resources that are most abundant in inv *)
+let discardn n inv : cost =
 	let rec helper n inv chosen =
 		match n with
 		| 0 -> chosen
-		| _ -> let (chose : cost) = single_resource_cost (highest_resource c pl) in
+		| _ -> let (chose : cost) = single_resource_cost (highest_resource inv) in
 			   helper (n-1) (diff_cost inv chose) (add_cost chosen chose) in
 	helper n inv empty_cost
 
@@ -166,7 +170,7 @@ let discardn n inv c pl: cost =
 let discard_half c pl : cost =
 	let inv = inv_of (player c pl) in
 	let n = (sum_cost (inv)) / 2 in
-	discardn n inv c pl
+	discardn n inv
 		
 
 

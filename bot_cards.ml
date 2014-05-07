@@ -22,8 +22,8 @@ open Robber
     (*If the card is a monopoly, verify we have at least one resource*)
     List.exists (fun cd -> fst(have_card_of cd hnd) && (if cd = Monopoly then valid_monop else true)) vd_cards
 
-  (*let select_valid_card (cm : color ) (pl : player list) = 
+  let select_valid_card (cm : color ) (pl : player list) : card = 
     let vd_cards = [Monopoly; YearOfPlenty; Knight] in
     let p = player cm pl in
-    let hdn = reveal (cards of p) in
-    () *)
+    let hdn = reveal (cards_of p) in
+    List.find (fun c -> List.mem c hdn) vd_cards

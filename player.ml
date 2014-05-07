@@ -36,6 +36,11 @@ map_cost2 (fun a b ->
 		if diff > 0 then diff
 		else failwith "cannot have a negative cost") cost1 cost2 *)
 
+(* subtraction of cost2 from cost1. If the difference is negative for any resource, make it 0. *)
+let floor_diff_cost cost1 cost2 : cost =
+	map_cost2 (fun a b ->
+		max 0 (a-b) ) cost1 cost2
+
 (* addition of two costs *)
 let add_cost cost1 cost2 : cost =
 	map_cost2 (fun a b -> a+b) cost1 cost2	
@@ -46,7 +51,6 @@ let can_pay (p : player ) (fee : cost) =
 	let check_for_negatives ((b,w,o,l,g) : cost) : bool =
 		b>=0 && w>=0 && o>=0 && l>=0 && g>=0 in
 	check_for_negatives inv'
-
 
 (* n_of r n returns a cost for n of resource r *)
 let n_resource_cost resource n : cost =

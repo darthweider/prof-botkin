@@ -106,7 +106,7 @@ let road_pts_of c rl =
 let num_towns_of c il : int =
 	list_count ( fun i -> 
 		match i with 
-		| Some(color,s) when color = c -> true 
+		| Some(color,s) when color = c && s = Town-> true 
 		| _ -> false ) il
 
 let num_cities_of c il : int =

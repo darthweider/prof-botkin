@@ -69,4 +69,4 @@ let has_won c il pl : bool =
 	let city_pts = cVP_CITY * num_cities_of c il in
 	let road_pts = if has_longest_road (player c pl) then cVP_LONGEST_ROAD else 0 in
 	let army_pts = if has_largest_army (player c pl) then cVP_LARGEST_ARMY else 0 in
-	card_pts + town_pts + city_pts + road_pts + army_pts > cWIN_CONDITION
+	card_pts + town_pts + city_pts + road_pts + army_pts >= cWIN_CONDITION

@@ -246,16 +246,16 @@ let handle_trade_initiate history scores cm pl : move option =
 	let inv = inv_of (player cm pl) in
 	let trade buildcost = trade_for buildcost history scores inv pl in
 	match trade cCOST_CITY with
-	| Some(trd) -> Some (Action(DomesticTrade(trd)))
+	| Some(trd) -> Some (Action(DomesticTrade(trd))); history := trd::!history
 	| None ->
 		match trade cCOST_TOWN with
-		| Some(trd) -> Some (Action(DomesticTrade(trd)))
+		| Some(trd) -> Some (Action(DomesticTrade(trd))); history := trd::!history
 		| None ->
 			match trade cCOST_CARD with
-			| Some(trd) -> Some (Action(DomesticTrade(trd)))
+			| Some(trd) -> Some (Action(DomesticTrade(trd))); history := trd::!history
 			| None -> 
 				match trade cCOST_ROAD with
-					| Some(trd) -> Some (Action(DomesticTrade(trd)))
+					| Some(trd) -> Some (Action(DomesticTrade(trd))); history := trd::!history
 					| None -> None
 
 let should_initiate_trade history scores cm pl : bool =

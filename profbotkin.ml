@@ -25,6 +25,7 @@ module Bot = functor (S : Soul) -> struct
   let initialize () =
     history:= [];
     Hashtbl.clear scores;
+    (List.iter (fun col -> Hashtbl.add scores col 0) cDEFAULT_COLORS);
     prev_trade:=(0,0,0,0,0),None
 
 

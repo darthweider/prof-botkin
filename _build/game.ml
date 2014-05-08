@@ -5,6 +5,8 @@ open Print
 open Printf
 open Player (* functions for handling assets and players *)
 open Structures (* functions for roads and setlements: building and initializing *)
+open Trophies
+open Robber
 
 type game = state (* to edit *)
 
@@ -16,70 +18,45 @@ let init_game () = game_of_state (gen_initial_state())
 
 
 
-
-(* list of colors next to a given piece, according to intersection list il *)
-let colors_near (pc : piece) (il : intersection list) : color list =
-	let adj = piece_corners pc in 
-	List.fold_left (fun clist pt -> 
-		match List.nth il pt with
-		| Some(c,settle) -> c::clist
-		| None -> clist )
-		[] adj
-
-(* placing the robber on piece pc is a valid move on board b *)
-(* robber is not currently at the piece indicated.
-   If a color is indicated, it must have a settlement on an adjacent pt.
-   If a color is not indicated, there must be no colors adjacent to pc. *)
-let valid_rob (pc,copt) b =
-	let m, (il, rl), dk, dis, rob = b in
-	if pc = rob then false
-	else 
-		match copt with
-		| None when colors_near pc il = []            -> true
-		| Some(c) when List.mem c (colors_near pc il) -> true
-		| _                                           -> false
-
-let rec random_rob b : move =
-	let _,(il,_),_,_,rob = b in
-	let ran_pc = Random.int 18 in
-	if ran_pc = rob 
-		then random_rob b
-	else     RobberMove(ran_pc, pick_random (colors_near ran_pc il))
-
-
-
-
-
 (* make_valid m rq will return m if m is a valid move in game g. 
    If not, make_valid will return a valid move. *)
 let rec make_valid (m : move) (g : game) : move =
 	let b, pl, t, (cm, rq) = g in
+	let (hlist, plist), (il, rl), dk, dis, rob = b in
+
 
 	match rq, m with
 	| InitialRequest, InitialMove(ln)  when valid_initial cm ln b   ->  m
-	| InitialRequest, _                                             ->  random_initialmove cm b
+	| InitialRequest, _                                             ->  failwith "bad initial"(*random_initialmove cm b*)
 	| RobberRequest, RobberMove(rob)   when valid_rob rob b         ->  m 
-	| RobberRequest, _                                              ->  random_rob b
+	| RobberRequest, _                                              ->  failwith "bad robber"(*random_rob cm b*)
 	| DiscardRequest, DiscardMove(dis) when valid_discard cm dis pl ->  m
-	| DiscardRequest, _                                             ->  random_discard (inv_of (player cm pl))
+	| DiscardRequest, _                                             ->  failwith "bad discard"(*random_discard (inv_of (player cm pl))*)
 	| TradeRequest, TradeResponse(_)                                ->  m
 	| TradeRequest, _                                               ->  TradeResponse(Random.bool())
-	| ActionRequest, Action(PlayCard(pc)) when not t.cardplayed     ->  m
-	| ActionRequest, _ when is_none t.dicerolled                    ->  Action(RollDice)
-	| ActionRequest, Action(MaritimeTrade(mt)) -> m
+	| ActionRequest, Action(PlayCard(PlayKnight(rbm))) when not t.cardplayed && (valid_knight cm pl) && valid_rob rbm b  ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, Some(rd2)))) when not t.cardplayed && (List.length rl) < cMAX_ROADS_PER_PLAYER ->  m
+	| ActionRequest, Action(PlayCard(PlayRoadBuilding(rd1, None))) when not t.cardplayed && (List.length rl) < cMAX_ROADS_PER_PLAYER - 1 ->  m
+	| ActionRequest, Action(PlayCard(PlayYearOfPlenty(res1, res2))) when not t.cardplayed     ->  m
+	| ActionRequest, Action(PlayCard(PlayMonopoly(res))) when not t.cardplayed && (valid_monopoly cm pl res)               ->  m
+	| ActionRequest, _ when is_none t.dicerolled                                              ->  Action(RollDice)
+	| ActionRequest, Action(MaritimeTrade(r1, _)) when valid_mari_trade cm pl il plist r1     -> m
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
-	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) -> m
+	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
+	| ActionRequest, Action(DomesticTrade(trd))                                                         -> failwith "invalid domestic trade"
 		(* when player has resources ot make the trade and trade limit not reached *) 
-	| ActionRequest, Action(BuyBuild(BuildRoad(ln))) when valid_build_road cm ln -> m
+	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl il cCOST_ROAD   -> m
 		(* and player can pay cost_of_build *)
-	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt -> m
+	| ActionRequest, Action (BuyBuild(BuildTown(pt))) when valid_build_town cm pt pl rl il              -> m
+	| ActionRequest, Action (BuyBuild(BuildTown(pt)))                                                   -> print_string "\n"; print_int pt; print_string "\n"; failwith "can't build there"
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt -> m
+	| ActionRequest, Action (BuyBuild(BuildCity(pt))) when valid_build_city cm pt pl il                 -> m
 		(* and player can pay *)
-	| ActionRequest, Action (BuyBuild(BuildCard)) -> m
+	| ActionRequest, Action (BuyBuild(BuildCard)) when valid_build_card cm pl dk                        -> m
 		(* when player can pay *)
-	| ActionRequest, _ -> Action(EndTurn) 
+	| ActionRequest, Action(EndTurn)                                                                    -> Action(EndTurn)
+	| ActionRequest, _                                                                                  -> failwith "broke me" 
 
 
 
@@ -125,17 +102,37 @@ let handle_move g m =
 
 			(b', pl'', t, n')
 		end
-		| DiscardMove (ns)-> failwith "I am the shadow of the waxwing slain"
-			(* use map_cost2 to subtract cost ns from player's resources *)
-			(* when the requested player still has more than seven cards. discard the ones they inicated, and discard some more *)
-		| TradeResponse (agree) ->
+		| DiscardMove (ns)-> begin
+			(*Discard, then check if any other players must discard. If not, have the inital player move the robber*)
+			let pl' = rm_from_inv ns cm pl in
+			if cm = t.active then (b, pl', t, ((cm), RobberRequest))
+		    else
+			next_to_discard cm pl' t b
+		end
+
+		| TradeResponse (agree) -> begin
 			let t' = { active = t.active ; dicerolled = t.dicerolled ;
 			           cardplayed = t.cardplayed ; cardsbought = t.cardsbought ;
 			           tradesmade = t.tradesmade ; pendingtrade = None } in
 			let n' = t.active, ActionRequest in
-			if not agree then (b,pl,t',n')
-			else (* make trade *) failwith "I am the shadow of the waxwing slain"	
-			(* did NOT change trade counter *)
+			match t.pendingtrade with
+			| Some(c, outns, inns) -> begin				
+				if not agree then (b,pl,t',n')
+				else begin
+				    (*Remove proposing player's resources*)
+				    let pl' = rm_from_inv outns t.active pl in
+				    (*Remove receiving player's resources*)
+				    let pl' = rm_from_inv inns c pl' in
+				    (*Give proposing player their resources*)
+				    let pl' = add_to_inv inns t.active pl' in
+				    (*Give receiving player their resources*)
+				    let pl' = add_to_inv outns c pl' in	
+				    (*Trade is done*)
+				    (b, pl', t', n')
+				end
+			end
+			| _ -> (b,pl,t',n')
+		end
 		| Action (RollDice) ->
 			let roll = random_roll () in
 
@@ -143,9 +140,10 @@ let handle_move g m =
 			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
 			          pendingtrade = t.pendingtrade } in
 
-			if roll = cROBBER_ROLL then (b, pl, t', (cm, RobberRequest))
-
-			(* distribute resources *)
+			if roll = cROBBER_ROLL then
+				(*Everyone discard if over 7 resources. Move the robber after discarding*)
+				next_to_discard t.active pl t' b
+			(* Else distribute resources *)
 			else let pl' = 
 					List.fold_left (fun placc (pc, hex) ->
 						let t, n = hex in
@@ -158,23 +156,222 @@ let handle_move g m =
 				(b, pl', t', n')
 
 
-		| Action (MaritimeTrade(sell, buy)) -> failwith "I am the shadow of the waxwing slain"
+		| Action (MaritimeTrade(sell, buy)) ->begin
+			let ports = get_ports cm il portl in
+			let rate = best_trade_rate ports sell in
+			let cost = n_resource_cost sell rate in
+			let reward = n_resource_cost buy 1 in
+			(*Remove minimum amount of resources possible*)
+			let pl' = rm_from_inv cost cm pl in
+			(*Receive one resource back*)
+			let pl' = add_to_inv reward cm pl' in
+			(*Trade is done*)
+			let n' = (cm, ActionRequest) in
+			(b, pl', t, n')
+		end
 
-		| Action (DomesticTrade(c, outns, inns)) -> failwith "Lolita"
-			(* increment trade counter *)
-		| Action (BuyBuild(BuildRoad(c,lin))) -> failwith "light of my life, "
-		| Action (BuyBuild(BuildTown(pt))) -> failwith "light of my life, "
+		| Action (DomesticTrade(c, outns, inns)) -> begin
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade+1 ; 
+			          pendingtrade = Some(c, outns, inns) } in
+			(*Verify that the trade is legal--enough recourses must exist*)
+			(b, pl, t', (c, TradeRequest))
+			
+		end
 
-		| Action (BuyBuild(BuildCity(pt))) -> failwith "light of my life, "
-		| Action (BuyBuild(BuildCard)) -> failwith "light of my life, "
-			(* remove card from deck *)
-		| Action (PlayCard(PlayKnight(rm))) -> failwith "fire of my loins"
-			(* add card to discard pile *)
-		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) -> failwith "fire of my loins"
-		| Action (PlayCard(PlayRoadBuilding(rd1, None))) -> failwith "fire of my loins"		
-		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) -> failwith "fire of my loins"
-		| Action (PlayCard(PlayYearOfPlenty(rsc1, None))) -> failwith "fire of my loins"
-		| Action (PlayCard(PlayMonopoly(rsc))) -> failwith "fire of my loins"
+
+		(*Subtract fee. Place Road. ActionRequest*)
+		| Action (BuyBuild(BuildRoad(c,lin))) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_ROAD c pl in
+			(*Place road*)
+			let rl' = add_road (c,lin) rl in
+			let pl' = update_longest_road c rl' il pl' in
+			let b' = (hexl, portl), (il, rl'), dk, dis, rob in
+			(b', pl', t, (cm, ActionRequest))
+
+		| Action (BuyBuild(BuildTown(pt))) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_TOWN cm pl in
+			(*Place town--MIGHT want to change this to a function that can't fail. At this point the town should be valid, but better safe than sorry*)
+			let il' = add_town cm pt il in
+			let b' = (hexl, portl), (il', rl), dk, dis, rob in
+			(b', pl', t, (cm, ActionRequest))
+
+		| Action (BuyBuild(BuildCity(pt))) -> 
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_CITY cm pl in
+			(*Place city. This is done by removing the town and replacing it with a city*)
+			let il' = add_city cm pt il in
+			let b' = (hexl, portl), (il', rl), dk, dis, rob in
+			(b', pl', t, (cm, ActionRequest))
+			
+		| Action (BuyBuild(BuildCard)) ->
+			(*Pay up*)
+			let pl' = rm_from_inv cCOST_CARD cm pl in
+			(*Unwrap the deck*)
+			let revdeck = reveal dk in
+			(*Get the deck size*)
+			let dksize = List.length revdeck in
+			(*Draw a random card from the range [0...dksize-1]*)
+			let rmcard_index = Random.int dksize in
+			let card = List.nth (reveal dk) rmcard_index in
+			(*Remove the card from the unwrapped list; rewrap the new deck*)
+			let dk' = Reveal (List.filter (fun x -> x <> card) revdeck) in
+			(*Store the drawn card*)
+			let cardsb = Reveal( card::(reveal t.cardsbought)) in
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = t.cardplayed ;
+			          cardsbought = cardsb ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			          (*Update the board with new deck*)
+			let b' = (hexl, portl), (il, rl), dk', dis, rob in
+			(*Update the game with new board, new playerlist (costs removed), new turn (card added)*)
+			(b', pl', t', (cm, ActionRequest))
+		| Action (PlayCard(PlayKnight(pc, copt))) ->
+
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of Knight h in
+			(*add the card to discard*)
+			let dis' = Knight::dis in
+			(*Move the robber*)
+			let b' = (hexl, portl), (il, rl), dk, dis', pc in
+
+			let pl'' =
+				match copt with
+				| None -> pl
+				| Some(c) -> begin
+					(* the cost of one random resource that c has *)
+					let stolen = n_random_resources (inv_of (player c pl)) 1 in
+					let pl' = rm_from_inv stolen c pl in
+					add_to_inv stolen cm pl' 
+				end in
+			let pl'' = update cm pl'' (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn+1, t1, t2))) in
+			(*Update largest army*)
+			let pl'' = update_largest_army cm pl'' in
+			let n' = cm, ActionRequest in
+			(b', pl'', t', n')
+
+		| Action (PlayCard(PlayRoadBuilding(rd1, Some rd2))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of RoadBuilding h in
+			(*add the card to discard*)
+			let dis' = RoadBuilding::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add the roads*)
+			let rl' = rd2::rd1::rl in
+			let pl' = update_longest_road cm rl' il pl' in
+			let b' = (hexl, portl), (il, rl'), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+
+		| Action (PlayCard(PlayRoadBuilding(rd1, None))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of RoadBuilding h in
+			(*add the card to discard*)
+			let dis' = RoadBuilding::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add the roads*)
+			let rl' = rd1::rl in
+			let pl' = update_longest_road cm rl' il pl' in
+			let b' = (hexl, portl), (il, rl'), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')	
+
+		| Action (PlayCard(PlayYearOfPlenty(rsc1, Some rsc2))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of YearOfPlenty h in
+			(*add the card to discard*)
+			let dis' = YearOfPlenty::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add resource 1*)
+			let pl' = add_to_inv (single_resource_cost rsc1) cm pl' in
+			(*Add resource 2*)
+			let pl' = add_to_inv (single_resource_cost rsc2) cm pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+		| Action (PlayCard(PlayYearOfPlenty(rsc1, None))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of YearOfPlenty h in
+			(*add the card to discard*)
+			let dis' = YearOfPlenty::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Add resource 1*)
+			let pl' = add_to_inv (single_resource_cost rsc1) cm pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
+		| Action (PlayCard(PlayMonopoly(rsc))) ->
+			let p = player cm pl in
+			(*our hand*)
+			let h = reveal (cards_of p) in
+			(*Note that we played a card*)
+			let t' = { active = t.active ; dicerolled = t.dicerolled ; cardplayed = true;
+			          cardsbought = t.cardsbought ; tradesmade = t.tradesmade ; 
+			          pendingtrade = t.pendingtrade} in
+			(*remove the card from our hand*)
+			let (_, h') = have_card_of Monopoly h in
+			(*add the card to discard*)
+			let dis' = Monopoly::dis in
+			(*update hand*)
+			let pl' = update cm pl (fun (c, (inv, han), (kn, t1, t2)) -> (c, (inv, Reveal(h')), (kn, t1, t2))) in
+			(*Get and remove resources*)
+			let rec helper (acc : player list) (plist : player list) : player list =
+				match plist with
+				| p1::tl -> begin
+					let playerc = color_of p1 in
+					if playerc = cm then helper acc tl
+				    else 
+				    let p1_inv = inv_of p1 in
+				    let fee = n_resource_cost rsc (num_resource_in_inventory p1_inv rsc) in
+				    let acc = rm_from_inv fee playerc acc in
+				    let acc = add_to_inv fee cm acc in
+				    helper acc tl
+				end
+				| [] -> acc in
+			let pl' = helper pl' pl' in
+			let b' = (hexl, portl), (il, rl), dk, dis', rob in
+			let n' = cm, ActionRequest in
+			(b', pl',  t', n')
 		| Action (EndTurn) ->
 			(* distribute cards that have been bought *)
 			let pl' = add_cards t.cardsbought t.active pl in
@@ -184,8 +381,8 @@ let handle_move g m =
 			(b, pl', t', (next_active, ActionRequest))
 	in
 	let winner : color option =
-		(* if various win conditions -> some color , else *)
-		None in
+		if has_won t.active il pl then Some t.active
+		else None in
 	print_update cm mv (state_of_game g');
 	(winner, g')
 

@@ -20,7 +20,7 @@ let initial_pt_worth pt b : int =
 	List.fold_left (fun worth hex -> 
 		let extra = 
 			match terrain_of hex with
-			| Hill | Forest -> 2
+			| Hill | Forest -> 3
 			| _ -> 0 in 
 		worth + odds_of_roll (roll_of hex) + extra ) 0 adj_hexes
 

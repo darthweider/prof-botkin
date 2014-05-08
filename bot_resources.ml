@@ -198,16 +198,12 @@ let better_partner scores p1 p2 =
 	else if s1 > s2 then ~-1
 	else 0
 
-(* players that have a given cost available *)
-let can_ask_for cost pl : player list =
-	List.fold_left ( fun ask p ->
-		if (can_pay p cost) then p::ask
-		else ask ) [] pl
-
 (* players that should be asked for a trade to get cost, in order of preference. 
    Players that have trading scores less than 5 are ignored *)
 let should_ask_for cost pl scores : player list =
-	let filtered = List.filter (fun p -> (Hashtbl.find scores (color_of p)) > -5 ) (can_ask_for cost pl) in
+	let filtered = List.filter (fun p -> 
+		can_pay p cost &&
+		(Hashtbl.find scores (color_of p)) > -5 ) pl in
 	List.sort (better_partner scores) filtered
 
 (* return a trade type in order to get resources for building something of buildcost, 
@@ -217,23 +213,30 @@ let trade_for buildcost history scores inv pl : trade option =
 	let can_trade = free_for_trade buildcost inv in
 	let num_can_trade = sum_cost can_trade in
 
-
+	(* if we are close to being able to build something and we have leftover resources to trade *)
 	if (one_away buildcost inv) && (num_can_trade > 0) then
+		(* the trade offer we want to give *)
 		let will_pay =
 			if num_can_trade < 2 then can_trade
-			else n_resource_cost (highest_resource can_trade) 2 in
+			else 
+				let high_res_cost = single_resource_cost (highest_resource can_trade) in
+				let high_res2_cost = single_resource_cost (highest_resource (diff_cost can_trade high_res_cost)) in
+			 	add_cost high_res_cost high_res2_cost in
 
-		let players_to_ask = should_ask_for buildcost pl scores in
-		let have_not_asked p : bool =
-			not (List.mem ((color_of p),need,will_pay) !history) in
+		let players_to_ask = should_ask_for need pl scores in
 
 		(* ask a player in pl to give us what we need for what we will pay,
 		   as long as we have not asked this already this turn in history *)
 		let rec ask pl =
+	
+			let have_not_asked p : bool =
+				not (List.mem ((color_of p),need,will_pay) !history) in
+
 			match pl with
 			| [] -> None
 			| p::tl when have_not_asked p -> Some((color_of p),need,will_pay)
 			| p::tl -> ask tl in
+
 		ask players_to_ask 
 	else None
 
@@ -246,16 +249,16 @@ let handle_trade_initiate (history : 'a ref) scores cm pl : trade option =
 	let inv = inv_of (player cm pl) in
 	let trade buildcost = trade_for buildcost history scores inv pl in
 	match trade cCOST_CITY with
-	| Some(trd) -> (history := trd::!history); Some(trd)
+	| Some(trd) -> Some(trd)
 	| None ->
 		match trade cCOST_TOWN with
-		| Some(trd) -> (history := trd::!history); Some (trd)
+		| Some(trd) -> Some (trd)
 		| None ->
 			match trade cCOST_CARD with
-			| Some(trd) -> (history := trd::!history); Some (trd)
+			| Some(trd) -> Some (trd)
 			| None -> 
 				match trade cCOST_ROAD with
-					| Some(trd) -> (history := trd::!history); Some (trd)
+					| Some(trd) -> Some (trd)
 					| None -> None
 
 let should_initiate_trade history scores cm pl : bool =

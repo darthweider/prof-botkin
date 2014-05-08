@@ -27,7 +27,6 @@ open Print
     let vd_cards = [Monopoly; YearOfPlenty; Knight] in
     let p = player cm pl in
     let hdn = reveal (cards_of p) in
-    print_string (string_of_list (fun x -> string_of_card x) hdn);
     List.find (fun c -> List.mem c hdn) vd_cards
 
     (*Returns a resource for monopoly FAILS if it can't find a resourse*)
@@ -42,8 +41,6 @@ open Print
     let rec helper costlist =
     match costlist with
     | highest::tl -> begin
-        print_string "\n";
-        print_string (string_of_list (fun x -> if x then "True" else "False") rsc_we_have);
          if highest = b && List.nth rsc_we_have 0 then Brick
     else if highest = w && List.nth rsc_we_have 1 then Wool
     else if highest = o && List.nth rsc_we_have 2 then Ore
@@ -59,7 +56,7 @@ open Print
 
   let play_card_of (cd : card) (cm : color) (pl : player list) (b : board) : move = 
     match cd with 
-    | Monopoly     -> print_string ("Playing Monopoly on "^ (string_of_resource (mono_rsc cm pl))^"\n"); Action(PlayCard(PlayMonopoly(mono_rsc cm pl)))
+    | Monopoly     -> Action(PlayCard(PlayMonopoly(mono_rsc cm pl)))
     | YearOfPlenty -> Action(PlayCard(PlayYearOfPlenty(Brick, Some(Lumber))))
     | Knight       -> begin
         let rob = match handle_robber cm b pl with

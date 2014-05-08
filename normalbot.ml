@@ -4,7 +4,7 @@ open Constant
 open Util
 open Structures
 open Roadbfs
-open Bot_settlements
+open Bot_settlements2
 open Bot_resources
 open Player
 open Robber
@@ -12,7 +12,7 @@ open Bot_cards
 open Print
 
 (** Give your bot a 2-20 character name. *)
-let name = "profbotkin"
+let name = "normalbot"
 
 
 module Bot = functor (S : Soul) -> struct
@@ -73,7 +73,6 @@ module Bot = functor (S : Soul) -> struct
       | _ -> ());
     (*==========================================*)
     (*DEBUGGING*)
-
     
     (*==========================================*)
     match r with

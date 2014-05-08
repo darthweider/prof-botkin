@@ -4,3 +4,4 @@ open Babybot
 open Tradebot
 open Roadbot
 open Profbotkin
+open Normalbot

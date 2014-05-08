@@ -54,7 +54,8 @@ let rec make_valid (m : move) (g : game) : move =
 		(* and player can pay *)
 	| ActionRequest, Action (BuyBuild(BuildCard)) when valid_build_card cm pl dk                        -> m
 		(* when player can pay *)
-	| ActionRequest, _                                                                                  -> Action(EndTurn) 
+	| ActionRequest, Action(EndTurn)                                                                    -> Action(EndTurn)
+	| ActionRequest, _                                                                                  -> failwith "broke me" 
 
 
 

@@ -17,16 +17,24 @@ let name = "profbotkin"
 
 module Bot = functor (S : Soul) -> struct
   (*Our refs*)
-  let played_card = ref(false) 
-  let num_player_trades = ref(0)
+  let history = ref([])
+  let scores = Hashtbl.create 4
+  let prev_trade = ref((0,0,0,0,0),None)
+
   (* If you use side effects, start/reset your bot for a new game *)
   let initialize () =
-    played_card:=false;
-    num_player_trades:=0
+    history:= [];
+    Hashtbl.clear scores;
+    prev_trade:=(0,0,0,0,0),None
 
 
   (*Reset any turn-based refs*)
-  let next_turn () = ()
+  let next_turn () = 
+    history:= [];
+    Hashtbl.clear scores;
+    (*Tuple of inventory, and (some player) we traded with*)
+    prev_trade:=(0,0,0,0,0),None
+
 
   (* keep array of opponents' resources *)
 
@@ -54,10 +62,15 @@ module Bot = functor (S : Soul) -> struct
     (*(hlist, plist), (il, rl), dk, dis, rob*)
     let (hl, portl), (il, rl), _, _, _ = b in
     let ourplayer = player cm pl in
+    let inv = inv_of ourplayer in
     (*================Decisions=================*)
     let target_pt = best_available_pts_on_map b in
     let roadpath = (try (roadlist_to (List.hd target_pt) cm pl rl il)
                     with _ -> []) in
+    (match !prev_trade with
+      | prev_inv, Some(col) when prev_inv = inv-> (Hashtbl.add scores col ((Hashtbl.find scores col)-1)); (prev_trade:=(empty_cost, None))
+      | prev_inv, Some(col)                    -> (Hashtbl.add scores col ((Hashtbl.find scores col)+1)); (prev_trade:=(empty_cost, None))
+      | _ -> ());
     (*==========================================*)
     (*DEBUGGING*)
     print_string ((string_of_color cm) ^ "\n");
@@ -77,6 +90,11 @@ module Bot = functor (S : Soul) -> struct
                       && not t.cardplayed                                    -> handle_road_building cm b roadpath rl 
       | ActionRequest when is_none t.dicerolled                              -> Action(RollDice)
       | ActionRequest when not t.cardplayed && have_valid_card cm pl         -> handle_card cm pl b
+      | ActionRequest when should_initiate_trade history scores cm pl 
+                      && t.tradesmade < cNUM_TRADES_PER_TURN                 -> 
+                                let (col, cost1, cost2) = get_some (handle_trade_initiate history scores cm pl) in
+                                (prev_trade := inv, Some(col));
+                                Action(DomesticTrade(col, cost1, cost2))
       | ActionRequest when not (is_none (best_build_city_now cm b))
                       && can_pay ourplayer cCOST_CITY
                       && num_cities_of cm il < cMAX_CITIES_PER_PLAYER        -> handle_city cm b
@@ -91,7 +109,8 @@ module Bot = functor (S : Soul) -> struct
                       print_string (string_of_list (fun (_,(pt1, pt2)) -> "Road : " ^ (string_of_int pt1) ^ " to " ^ (string_of_int pt2) ^ "\n") [List.hd roadpath]);
                       Action(BuyBuild(BuildRoad(List.hd roadpath)))
       | ActionRequest when valid_build_card cm pl (dk_of b)                  -> (print_string "Buying Dev Card"); Action(BuyBuild(BuildCard))
-      | _ -> (print_string "Actively ending my turn");Action(EndTurn) 
+      | ActionRequest when should_maritime cm pl b                           -> handle_maritime cm pl
+      | _ -> (print_string "Actively ending my turn"); next_turn (); Action(EndTurn) 
 end
 
 

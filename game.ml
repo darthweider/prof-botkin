@@ -44,6 +44,7 @@ let rec make_valid (m : move) (g : game) : move =
 		(* when the player has the resources to make the trade w/ num_resources_in_inv; 
 		check which ports the player has and their trade ratios *)
 	| ActionRequest, Action(DomesticTrade(c, ocost, icost)) when valid_dom_trade cm c ocost icost pl t  -> m
+	| ActionRequest, Action(DomesticTrade(trd))                                                         -> failwith "invalid domestic trade"
 		(* when player has resources ot make the trade and trade limit not reached *) 
 	| ActionRequest, Action(BuyBuild(BuildRoad(rd))) when valid_build_road cm pl rd  rl il cCOST_ROAD   -> m
 		(* and player can pay cost_of_build *)

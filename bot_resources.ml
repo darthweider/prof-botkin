@@ -2,6 +2,7 @@ open Definition
 open Registry
 open Constant
 open Util
+open Print
 open Structures
 open Player
 open Robber
@@ -200,15 +201,16 @@ let better_partner scores p1 p2 =
 
 (* players that should be asked for a trade to get cost, in order of preference. 
    Players that have trading scores less than 5 are ignored *)
-let should_ask_for cost pl scores : player list =
+let should_ask_for cost cm pl scores : player list =
 	let filtered = List.filter (fun p -> 
+		color_of p <> cm &&
 		can_pay p cost &&
 		(Hashtbl.find scores (color_of p)) > -5 ) pl in
 	List.sort (better_partner scores) filtered
 
 (* return a trade type in order to get resources for building something of buildcost, 
    if such a trade exists *)
-let trade_for buildcost history scores inv pl : trade option =
+let trade_for buildcost cm history scores inv pl : trade option =
 	let need = need_for buildcost inv in
 	let can_trade = free_for_trade buildcost inv in
 	let num_can_trade = sum_cost can_trade in
@@ -223,7 +225,7 @@ let trade_for buildcost history scores inv pl : trade option =
 				let high_res2_cost = single_resource_cost (highest_resource (diff_cost can_trade high_res_cost)) in
 			 	add_cost high_res_cost high_res2_cost in
 
-		let players_to_ask = should_ask_for need pl scores in
+		let players_to_ask = should_ask_for need cm pl scores in
 
 		(* ask a player in pl to give us what we need for what we will pay,
 		   as long as we have not asked this already this turn in history *)
@@ -234,7 +236,12 @@ let trade_for buildcost history scores inv pl : trade option =
 
 			match pl with
 			| [] -> None
-			| p::tl when have_not_asked p -> Some((color_of p),need,will_pay)
+			| p::tl when have_not_asked p -> 
+				(* DEBUG *)
+				print ("to "^(string_of_color (color_of p)));
+				print ("we want "^(string_of_cost (need)));
+				print ("and will give "^(string_of_cost (will_pay)));
+				Some((color_of p),will_pay,need)
 			| p::tl -> ask tl in
 
 		ask players_to_ask 
@@ -247,7 +254,7 @@ let trade_for buildcost history scores inv pl : trade option =
    for other colors *)
 let handle_trade_initiate (history : 'a ref) scores cm pl : trade option =
 	let inv = inv_of (player cm pl) in
-	let trade buildcost = trade_for buildcost history scores inv pl in
+	let trade buildcost = trade_for buildcost cm history scores inv pl in
 	match trade cCOST_CITY with
 	| Some(trd) -> Some(trd)
 	| None ->

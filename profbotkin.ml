@@ -32,7 +32,6 @@ module Bot = functor (S : Soul) -> struct
   (*Reset any turn-based refs*)
   let next_turn () = 
     history:= [];
-    Hashtbl.clear scores;
     (*Tuple of inventory, and (some player) we traded with*)
     prev_trade:=(0,0,0,0,0),None
 
@@ -95,6 +94,7 @@ module Bot = functor (S : Soul) -> struct
                       && t.tradesmade < cNUM_TRADES_PER_TURN                 -> 
                                 let (col, cost1, cost2) = get_some (handle_trade_initiate history scores cm pl) in
                                 (prev_trade := inv, Some(col));
+                                (history := (col, cost1,cost2)::!history);
                                 Action(DomesticTrade(col, cost1, cost2))
       | ActionRequest when not (is_none (best_build_city_now cm b))
                       && can_pay ourplayer cCOST_CITY

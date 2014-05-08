@@ -242,20 +242,20 @@ let trade_for buildcost history scores inv pl : trade option =
 (* takes in a list history that lists the previously requested trades 
    and a hashtable scores that lists the "good trading partner" score 
    for other colors *)
-let handle_trade_initiate (history : 'a ref) scores cm pl : move option =
+let handle_trade_initiate (history : 'a ref) scores cm pl : trade option =
 	let inv = inv_of (player cm pl) in
 	let trade buildcost = trade_for buildcost history scores inv pl in
 	match trade cCOST_CITY with
-	| Some(trd) -> (history := trd::!history); Some (Action(DomesticTrade(trd)))
+	| Some(trd) -> (history := trd::!history); Some(trd)
 	| None ->
 		match trade cCOST_TOWN with
-		| Some(trd) -> (history := trd::!history); Some (Action(DomesticTrade(trd)))
+		| Some(trd) -> (history := trd::!history); Some (trd)
 		| None ->
 			match trade cCOST_CARD with
-			| Some(trd) -> (history := trd::!history); Some (Action(DomesticTrade(trd)))
+			| Some(trd) -> (history := trd::!history); Some (trd)
 			| None -> 
 				match trade cCOST_ROAD with
-					| Some(trd) -> (history := trd::!history); Some (Action(DomesticTrade(trd)))
+					| Some(trd) -> (history := trd::!history); Some (trd)
 					| None -> None
 
 let should_initiate_trade history scores cm pl : bool =

@@ -65,7 +65,7 @@ let colors_near (pc : piece) (il : intersection list) : color list =
 (*===========HEXES===============*)
 
 let roll_of (t,r) : roll = r
-
+let terrain_of (t,r) : terrain = t
 
 (*==================ROADS======================*)
 

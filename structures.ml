@@ -213,7 +213,6 @@ let valid_road_building (c: color) (pl: player list) (rl : road list) (il : inte
 let valid_initial c ln b : bool =
 	let _,(il,rl),_,_,_ = b in
 	let pt1,pt2 = ln in
-	printf "valid line %B\nexists road %B\narea free %B\n" (valid_line ln) (exists_road ln rl) (area_free pt1 il);
 	(valid_line ln) && (not (exists_road ln rl)) && (area_free pt1 il)
 
 

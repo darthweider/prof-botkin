@@ -41,7 +41,7 @@ module Bot = functor (S : Soul) -> struct
     let tentative_ln = 
       match best_available_pts_on_map b with
       | best1::t -> (best1, random_adj_pt best1)
-      | [] -> random_line in
+      | [] -> random_line () in
     if valid_initial cm tentative_ln b then InitialMove(tentative_ln)
     else handle_initial cm b
 

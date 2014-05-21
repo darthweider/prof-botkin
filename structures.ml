@@ -213,6 +213,7 @@ let valid_road_building (c: color) (pl: player list) (rl : road list) (il : inte
 let valid_initial c ln b : bool =
 	let _,(il,rl),_,_,_ = b in
 	let pt1,pt2 = ln in
+	printf "valid line %B\nexists road %B\narea free %B\n" (valid_line ln) (exists_road ln rl) (area_free pt1 il);
 	(valid_line ln) && (not (exists_road ln rl)) && (area_free pt1 il)
 
 
@@ -249,13 +250,14 @@ let initial c (pt1,pt2) b : board =
 
 
 (*=================RANDOM MOVE================*)
-let random_pt : point = Random.int cNUM_POINTS
+let random_pt () : point = Random.int cNUM_POINTS
 let random_adj_pt pt1 : point = get_some (pick_random (adjacent_points pt1))
-let random_line : line =
-	let pt1 = random_pt in
+let random_line () : line =
+	let pt1 = random_pt () in
 	pt1, random_adj_pt pt1
 
 let rec random_initialmove c b : move =
-	let rand_ln = random_line in
+	let rand_ln = random_line () in
+
 	if valid_initial c rand_ln b then InitialMove(rand_ln)
 	else random_initialmove c b
